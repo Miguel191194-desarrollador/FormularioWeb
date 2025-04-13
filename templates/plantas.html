@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <title>Ficha Plantas - Dimensa</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background-color: #f4f7f8;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+
+        header {
+            background-color: #003366;
+            color: white;
+            text-align: center;
+            padding: 20px;
+            font-size: 24px;
+            letter-spacing: 1px;
+            position: relative;
+        }
+
+        header img {
+            position: absolute;
+            left: 20px;
+            top: 10px;
+            height: 70px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 30px auto;
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            color: #003366;
+            margin-bottom: 30px;
+            font-size: 28px;
+            text-align: center;
+        }
+
+        .section {
+            background-color: #f0f4f8;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #003366;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+
+        .section-title i {
+            color: #cc0000;
+            margin-right: 10px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px 30px;
+        }
+
+        label {
+            display: block;
+            margin-top: 10px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        input[type="text"],
+        input[type="email"] {
+            width: 100%;
+            padding: 8px;
+            margin-top: 4px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background-color: #fdfdfd;
+            box-sizing: border-box;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus,
+        input[type="email"]:focus {
+            border-color: #003366;
+            outline: none;
+        }
+
+        button {
+            background-color: #cc0000;
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            display: inline-flex;
+            align-items: center;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            margin-top: 30px;
+        }
+
+        button i {
+            margin-left: 10px;
+        }
+
+        button:hover {
+            background-color: #a30000;
+            transform: translateY(-2px);
+        }
+
+        @media (max-width: 700px) {
+            header img {
+                position: static;
+                display: block;
+                margin: 0 auto 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <img src="{{ url_for('static', filename='logo_dimensa.png') }}" alt="Logo Dimensa">
+    FICHA PLANTAS - DIMENSA
+</header>
+
+<form action="/guardar" method="post">
+    <div class="container">
+        <h2>Datos de las Plantas</h2>
+
+        {% for i in range(1, 11) %}
+        <div class="section">
+            <div class="section-title"><i class="fas fa-industry"></i> Planta {{ i }}</div>
+            <div class="form-grid">
+                <div>
+                    <label>Nombre de la planta</label>
+                    <input type="text" name="planta_nombre_{{ i }}">
+                </div>
+                <div>
+                    <label>Dirección</label>
+                    <input type="text" name="planta_direccion_{{ i }}">
+                </div>
+                <div>
+                    <label>Código Postal</label>
+                    <input type="text" name="planta_cp_{{ i }}">
+                </div>
+                <div>
+                    <label>Población</label>
+                    <input type="text" name="planta_poblacion_{{ i }}">
+                </div>
+                <div>
+                    <label>Provincia</label>
+                    <input type="text" name="planta_provincia_{{ i }}">
+                </div>
+                <div>
+                    <label>Teléfono</label>
+                    <input type="text" name="planta_telefono_{{ i }}">
+                </div>
+                <div>
+                    <label>Email</label>
+                    <input type="email" name="planta_email_{{ i }}">
+                </div>
+                <div>
+                    <label>Horario de descarga</label>
+                    <input type="text" name="planta_horario_{{ i }}">
+                </div>
+                <div>
+                    <label>Observaciones de descarga</label>
+                    <input type="text" name="planta_observaciones_{{ i }}">
+                </div>
+                <div>
+                    <label>Nombre contacto de descarga</label>
+                    <input type="text" name="planta_contacto_nombre_{{ i }}">
+                </div>
+                <div>
+                    <label>Teléfono contacto de descarga</label>
+                    <input type="text" name="planta_contacto_telefono_{{ i }}">
+                </div>
+                <div>
+                    <label>Email contacto de descarga</label>
+                    <input type="email" name="planta_contacto_email_{{ i }}">
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+
+        <div style="text-align: center;">
+            <button type="submit">Enviar formulario <i class="fas fa-paper-plane"></i></button>
+        </div>
+    </div>
+</form>
+
+</body>
+</html>
