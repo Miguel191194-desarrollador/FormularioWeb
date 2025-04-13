@@ -73,4 +73,5 @@ def enviar_correo_aviso():
         print(f'Error enviando el correo: {e}')
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    # Cambiado para que funcione en Render
+    app.run(host='0.0.0.0', port=10000)
