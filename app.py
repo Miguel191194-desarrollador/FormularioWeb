@@ -3,6 +3,8 @@ import pandas as pd
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email.mime.base import MIMEBase
+from email import encoders
 from datetime import datetime
 import os
 
@@ -10,8 +12,8 @@ app = Flask(__name__)
 app.secret_key = 'supersecretkey'  # Necesario para mantener la sesión entre páginas
 
 # Configuración de email
-EMAIL_ADDRESS = 'tesoreria@dimensasl.com'
-EMAIL_PASSWORD = 'Ma.3618d.'
+EMAIL_ADDRESS = 'tesoreria@dimensasl.com'  # Tu correo ✅
+EMAIL_PASSWORD = 'Ma.3618d.'  # Tu contraseña ✅
 
 # Ruta donde se guardarán los Excel generados
 SAVE_FOLDER = 'formularios_guardados'
@@ -48,33 +50,45 @@ def guardar():
     file_path = os.path.join(SAVE_FOLDER, f'alta_cliente_{timestamp}.xlsx')
     df.to_excel(file_path, index=False)
 
-    # Enviar correo de aviso
-    enviar_correo_aviso()
+    # Enviar correo de aviso con adjunto
+    enviar_correo_aviso(file_path)
 
     # Mensaje de éxito
     flash('Formulario enviado correctamente.')
     return redirect('/')
 
-def enviar_correo_aviso():
+def enviar_correo_aviso(file_path):
     msg = MIMEMultipart()
     msg['From'] = EMAIL_ADDRESS
-    msg['To'] = EMAIL_ADDRESS  # Aquí defines a quién quieres enviar el aviso
+    msg['To'] = EMAIL_ADDRESS  # Puedes añadir más correos si quieres
     msg['Subject'] = 'Nuevo formulario de alta de cliente recibido'
 
-    body = 'Se ha recibido un nuevo formulario de alta de cliente.'
+    body = 'Se ha recibido un nuevo formulario de alta de cliente. Se adjunta el archivo Excel.'
     msg.attach(MIMEText(body, 'plain'))
 
+    # Adjuntar el archivo Excel
+    try:
+        with open(file_path, 'rb') as f:
+            part = MIMEBase('application', 'octet-stream')
+            part.set_payload(f.read())
+            encoders.encode_base64(part)
+            part.add_header('Content-Disposition', f'attachment; filename={os.path.basename(file_path)}')
+            msg.attach(part)
+    except Exception as e:
+        print(f'Error adjuntando el archivo: {e}')
+
+    # Enviar el correo
     try:
         with smtplib.SMTP('smtp.office365.com', 587) as server:
             server.starttls()
             server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
             server.send_message(msg)
+        print('Correo enviado correctamente.')
     except Exception as e:
         print(f'Error enviando el correo: {e}')
 
 if __name__ == '__main__':
     # Cambiado para que funcione en Render
-    import os
-port = int(os.environ.get("PORT", 5000))
-app.run(host='0.0.0.0', port=port)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
 
