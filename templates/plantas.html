@@ -5,6 +5,7 @@
     <title>Ficha Plantas - Dimensa</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        /* Tus estilos originales aquí, los mantengo igual */
         body {
             background-color: #f4f7f8;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -81,6 +82,12 @@
             font-size: 14px;
         }
 
+        /* Asterisco en las etiquetas */
+        label::after {
+            content: " *";
+            color: red;
+        }
+
         input[type="text"],
         input[type="email"] {
             width: 100%;
@@ -138,62 +145,26 @@
     FICHA PLANTAS - DIMENSA
 </header>
 
-<form action="/guardar" method="post">
+<form action="/guardar" method="post" onsubmit="return validarFormulario();">
     <div class="container">
         <h2>Datos de las Plantas</h2>
 
         {% for i in range(1, 11) %}
-        <div class="section">
+        <div class="section" id="planta_{{ i }}">
             <div class="section-title"><i class="fas fa-industry"></i> Planta {{ i }}</div>
             <div class="form-grid">
-                <div>
-                    <label>Nombre de la planta</label>
-                    <input type="text" name="planta_nombre_{{ i }}">
-                </div>
-                <div>
-                    <label>Dirección</label>
-                    <input type="text" name="planta_direccion_{{ i }}">
-                </div>
-                <div>
-                    <label>Código Postal</label>
-                    <input type="text" name="planta_cp_{{ i }}">
-                </div>
-                <div>
-                    <label>Población</label>
-                    <input type="text" name="planta_poblacion_{{ i }}">
-                </div>
-                <div>
-                    <label>Provincia</label>
-                    <input type="text" name="planta_provincia_{{ i }}">
-                </div>
-                <div>
-                    <label>Teléfono</label>
-                    <input type="text" name="planta_telefono_{{ i }}">
-                </div>
-                <div>
-                    <label>Email</label>
-                    <input type="email" name="planta_email_{{ i }}">
-                </div>
-                <div>
-                    <label>Horario de descarga</label>
-                    <input type="text" name="planta_horario_{{ i }}">
-                </div>
-                <div>
-                    <label>Observaciones de descarga</label>
-                    <input type="text" name="planta_observaciones_{{ i }}">
-                </div>
-                <div>
-                    <label>Nombre contacto de descarga</label>
-                    <input type="text" name="planta_contacto_nombre_{{ i }}">
-                </div>
-                <div>
-                    <label>Teléfono contacto de descarga</label>
-                    <input type="text" name="planta_contacto_telefono_{{ i }}">
-                </div>
-                <div>
-                    <label>Email contacto de descarga</label>
-                    <input type="email" name="planta_contacto_email_{{ i }}">
-                </div>
+                <div><label>Nombre de la planta</label><input type="text" name="planta_nombre_{{ i }}"></div>
+                <div><label>Dirección</label><input type="text" name="planta_direccion_{{ i }}"></div>
+                <div><label>Código Postal</label><input type="text" name="planta_cp_{{ i }}"></div>
+                <div><label>Población</label><input type="text" name="planta_poblacion_{{ i }}"></div>
+                <div><label>Provincia</label><input type="text" name="planta_provincia_{{ i }}"></div>
+                <div><label>Teléfono</label><input type="text" name="planta_telefono_{{ i }}"></div>
+                <div><label>Email</label><input type="email" name="planta_email_{{ i }}"></div>
+                <div><label>Horario de descarga</label><input type="text" name="planta_horario_{{ i }}"></div>
+                <div><label>Observaciones de descarga</label><input type="text" name="planta_observaciones_{{ i }}"></div>
+                <div><label>Nombre contacto de descarga</label><input type="text" name="planta_contacto_nombre_{{ i }}"></div>
+                <div><label>Teléfono contacto de descarga</label><input type="text" name="planta_contacto_telefono_{{ i }}"></div>
+                <div><label>Email contacto de descarga</label><input type="email" name="planta_contacto_email_{{ i }}"></div>
             </div>
         </div>
         {% endfor %}
@@ -204,5 +175,30 @@
     </div>
 </form>
 
+<script>
+function validarFormulario() {
+    for (let i = 1; i <= 10; i++) {
+        const planta = document.querySelectorAll(`#planta_${i} input`);
+        let hayDatos = false;
+        planta.forEach(input => {
+            if (input.value.trim() !== '') {
+                hayDatos = true;
+            }
+        });
+        if (hayDatos) {
+            for (const input of planta) {
+                if (input.value.trim() === '') {
+                    alert(`Por favor, completa todos los campos de la Planta ${i}.`);
+                    input.focus();
+                    return false;
+                }
+            }
+        }
+    }
+    return true;
+}
+</script>
+
 </body>
 </html>
+
