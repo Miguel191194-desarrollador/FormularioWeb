@@ -92,7 +92,8 @@
         }
 
         input[type="text"],
-        input[type="email"] {
+        input[type="email"],
+        select {
             width: 100%;
             padding: 8px;
             margin-top: 4px;
@@ -104,7 +105,8 @@
         }
 
         input[type="text"]:focus,
-        input[type="email"]:focus {
+        input[type="email"]:focus,
+        select:focus {
             border-color: #003366;
             outline: none;
         }
@@ -140,6 +142,19 @@
             }
         }
     </style>
+    <script>
+        function actualizarCorreoComercial() {
+            const comercialSelect = document.getElementById('comercial');
+            const correoComercialInput = document.getElementById('correo_comercial');
+            const comerciales = {
+                'José Maria': 'jmmmorcillo@dimensasl.com',
+                'Francisco': 'franciscogarcia@dimensasl.com',
+                'Carmen': 'carmengutierrez@dimensasl.com',
+                'Damian': 'damianv@dimensasl.com'
+            };
+            correoComercialInput.value = comerciales[comercialSelect.value] || '';
+        }
+    </script>
 </head>
 <body>
 
@@ -154,7 +169,26 @@
 
         <div class="sections">
 
-            <!-- Datos generales -->
+            <div class="section">
+                <div class="section-title"><i class="fas fa-user"></i> Datos del Comercial</div>
+                <div class="form-grid">
+                    <div>
+                        <label for="comercial">Comercial</label>
+                        <select id="comercial" name="comercial" onchange="actualizarCorreoComercial()">
+                            <option value="">Seleccionar comercial</option>
+                            <option value="José Maria">José Maria</option>
+                            <option value="Francisco">Francisco</option>
+                            <option value="Carmen">Carmen</option>
+                            <option value="Damian">Damian</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="correo_comercial">Correo electrónico del comercial</label>
+                        <input type="email" id="correo_comercial" name="correo_comercial" readonly>
+                    </div>
+                </div>
+            </div>
+
             <div class="section">
                 <div class="section-title"><i class="fas fa-building"></i> Datos Generales de la Empresa</div>
                 <div class="form-grid">
@@ -201,7 +235,6 @@
                 </div>
             </div>
 
-            <!-- Forma de pago -->
             <div class="section">
                 <div class="section-title"><i class="fas fa-credit-card"></i> Forma de Pago</div>
                 <div class="form-grid">
@@ -216,7 +249,6 @@
                 </div>
             </div>
 
-            <!-- DTO Compras -->
             <div class="section">
                 <div class="section-title"><i class="fas fa-shopping-cart"></i> DTO. DE COMPRAS</div>
                 <div class="form-grid">
@@ -235,7 +267,6 @@
                 </div>
             </div>
 
-            <!-- DTO Contabilidad -->
             <div class="section">
                 <div class="section-title"><i class="fas fa-calculator"></i> DTO. CONTABILIDAD / TESORERÍA</div>
                 <div class="form-grid">
@@ -254,7 +285,6 @@
                 </div>
             </div>
 
-            <!-- DTO Facturación -->
             <div class="section">
                 <div class="section-title"><i class="fas fa-file-invoice"></i> DTO. FACTURACIÓN</div>
                 <div class="form-grid">
@@ -273,7 +303,6 @@
                 </div>
             </div>
 
-            <!-- Responsable de Descarga -->
             <div class="section">
                 <div class="section-title"><i class="fas fa-truck"></i> Responsable de Descarga</div>
                 <div class="form-grid">
@@ -292,7 +321,6 @@
                 </div>
             </div>
 
-            <!-- Otros contactos -->
             <div class="section">
                 <div class="section-title"><i class="fas fa-envelope"></i> Otros Contactos</div>
                 <div class="form-grid">
