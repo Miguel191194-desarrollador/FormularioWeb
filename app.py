@@ -60,7 +60,7 @@ def guardar():
 def enviar_correo_aviso(file_path):
     msg = MIMEMultipart()
     msg['From'] = EMAIL_ADDRESS
-    msg['To'] = tesoreria@dimensasl.com  # Puedes añadir más correos si quieres
+    msg['To'] = 'tesoreria@dimensasl.com'  # Destinatario del correo como string
     msg['Subject'] = 'Nuevo formulario de alta de cliente recibido'
 
     body = 'Se ha recibido un nuevo formulario de alta de cliente. Se adjunta el archivo Excel.'
