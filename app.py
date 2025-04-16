@@ -12,8 +12,8 @@ app = Flask(__name__)
 app.secret_key = 'supersecretkey'  # Necesario para mantener la sesión entre páginas
 
 # Configuración de email
-EMAIL_ADDRESS = 'tesoreria@dimensasl.com'  # Tu correo ✅
-EMAIL_PASSWORD = 'Ma.3618d.'  # Tu contraseña ✅
+EMAIL_ADDRESS = 'migueladr191194@gmail.com'  # Tu correo ✅
+EMAIL_PASSWORD = 'zvup wjjv bwas tebs'  # Tu contraseña ✅
 
 # Ruta donde se guardarán los Excel generados
 SAVE_FOLDER = 'formularios_guardados'
@@ -79,8 +79,7 @@ def enviar_correo_aviso(file_path):
 
     # Enviar el correo
     try:
-        with smtplib.SMTP('smtp.office365.com', 587) as server:
-            server.starttls()
+        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
             server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
             server.send_message(msg)
         print('Correo enviado correctamente.')
