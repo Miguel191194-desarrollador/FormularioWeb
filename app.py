@@ -19,9 +19,11 @@ EMAIL_PASSWORD = 'zvup wjjv bwas tebs'  # Tu contraseña ✅
 SAVE_FOLDER = 'formularios_guardados'
 os.makedirs(SAVE_FOLDER, exist_ok=True)
 
+
 @app.route('/', methods=['GET'])
 def formulario():
     return render_template('formulario.html')
+
 
 @app.route('/plantas', methods=['POST', 'GET'])
 def plantas():
@@ -35,14 +37,21 @@ def plantas():
     print("Datos recibidos en formulario inicial:", session['form_data'])
     return render_template('plantas.html')
 
+
 @app.route('/guardar', methods=['POST'])
 def guardar():
     # Recuperamos los datos de la sesión y de las plantas
     form_data = session.get('form_data', {})
     plantas_data = request.form.to_dict()
 
+    # Filtramos las plantas que tienen datos
+    plantas_filtradas = {}
+    for key, value in plantas_data.items():
+        if value:  # Si el valor no está vacío
+            plantas_filtradas[key] = value
+
     # Unimos todos los datos
-    data = {**form_data, **plantas_data}
+    data = {**form_data, **plantas_filtradas}
 
     # Guardar en Excel
     df = pd.DataFrame([data])
@@ -51,16 +60,20 @@ def guardar():
     df.to_excel(file_path, index=False)
 
     # Enviar correo de aviso con adjunto
-    enviar_correo_aviso(file_path)
+    enviar_correo_aviso(file_path, form_data.get('correo_comercial'))
 
     # Mensaje de éxito
     flash('Formulario enviado correctamente.')
     return redirect('/')
 
-def enviar_correo_aviso(file_path):
+
+def enviar_correo_aviso(file_path, comercial_email=None):
     msg = MIMEMultipart()
     msg['From'] = EMAIL_ADDRESS
-    msg['To'] = 'tesoreria@dimensasl.com'  # Destinatario del correo como string
+    destinatarios = ['tesoreria@dimensasl.com']
+    if comercial_email:
+        destinatarios.append(comercial_email)
+    msg['To'] = ', '.join(destinatarios)  # Unir destinatarios en una cadena
     msg['Subject'] = 'Nuevo formulario de alta de cliente recibido'
 
     body = 'Se ha recibido un nuevo formulario de alta de cliente. Se adjunta el archivo Excel.'
@@ -72,7 +85,10 @@ def enviar_correo_aviso(file_path):
             part = MIMEBase('application', 'octet-stream')
             part.set_payload(f.read())
             encoders.encode_base64(part)
-            part.add_header('Content-Disposition', f'attachment; filename={os.path.basename(file_path)}')
+            part.add_header(
+                'Content-Disposition',
+                f'attachment; filename={os.path.basename(file_path)}',
+            )
             msg.attach(part)
     except Exception as e:
         print(f'Error adjuntando el archivo: {e}')
@@ -85,6 +101,7 @@ def enviar_correo_aviso(file_path):
         print('Correo enviado correctamente.')
     except Exception as e:
         print(f'Error enviando el correo: {e}')
+
 
 if __name__ == '__main__':
     # Cambiado para que funcione en Render
