@@ -150,10 +150,10 @@
                 'José Maria': 'jmmmorcillo@dimensasl.com',
                 'Francisco': 'franciscogarcia@dimensasl.com',
                 'Carmen': 'carmengutierrez@dimensasl.com',
-                'Damian': 'damianv@dimensasl.com'
-                'Mostrador': 'tesoreria@dimensasl.com'
-                'Comercial no asigando': 'tesoreria@dimensasl.com'
-            
+                'Damian': 'damianv@dimensasl.com',
+                'Mostrador': 'tesoreria@dimensasl.com',
+                'Comercial no asignado': 'tesoreria@dimensasl.com'
+
             };
             correoComercialInput.value = comerciales[comercialSelect.value] || '';
         }
@@ -244,8 +244,18 @@
                 <div class="section-title"><i class="fas fa-credit-card"></i> Forma de Pago</div>
                 <div class="form-grid">
                     <div>
-                        <label>Forma de pago<span class="required">*</span></label>
-                        <input type="text" name="forma_pago" required>
+                        <label for="forma_pago">Forma de pago<span class="required">*</span></label>
+                        <select id="forma_pago" name="forma_pago" required>
+                            <option value="">Seleccionar forma de pago</option>
+                            <option value="Transferencia 0D">Transferencia 0D</option>
+                            <option value="Transferencia 30D">Transferencia 30D</option>
+                            <option value="Transferencia 60D">Transferencia 60D</option>
+                            <option value="Confirming 30D">Confirming 30D</option>
+                            <option value="Confirming 60D">Confirming 60D</option>
+                            <option value="Recibo 30D">Recibo 30D</option>
+                            <option value="Recibo 60D">Recibo 60D</option>
+                            <option value="Otro">Otro</option>
+                        </select>
                     </div>
                     <div>
                         <label>Otra forma de pago</label>
