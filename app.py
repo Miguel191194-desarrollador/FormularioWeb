@@ -7,6 +7,7 @@ from email import encoders
 from datetime import datetime
 from openpyxl import load_workbook
 import os
+import io
 
 app = Flask(__name__)
 app.secret_key = 'supersecretkey'
@@ -19,16 +20,13 @@ EMAIL_PASSWORD = 'zvup wjjv bwas tebs'
 def formulario():
     return render_template('formulario.html')
 
-
 @app.route('/plantas', methods=['POST', 'GET'])
 def plantas():
     if request.method == 'GET':
         flash('Por favor, rellena primero el formulario de cliente.')
         return redirect('/')
-
     session['form_data'] = request.form.to_dict()
     return render_template('plantas.html')
-
 
 @app.route('/guardar', methods=['POST'])
 def guardar():
@@ -36,26 +34,20 @@ def guardar():
     plantas_data = request.form.to_dict()
     data = {**form_data, **plantas_data}
 
-    # Crear Excel desde plantilla
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    filename = f'Alta_Cliente_{timestamp}.xlsx'
-    file_path = os.path.join('formularios_guardados', filename)
-    os.makedirs("formularios_guardados", exist_ok=True)
+    # Crear el Excel en memoria
+    archivo_excel = crear_excel_en_memoria(data)
 
-    crear_excel_desde_plantilla(data, file_path)
-
-    # Enviar correo con adjunto
-    enviar_correo_aviso(file_path, form_data.get('correo_comercial'))
+    # Enviar por correo
+    enviar_correo_con_adjunto(archivo_excel, form_data.get('correo_comercial'), data.get('nombre'))
 
     flash('Formulario enviado correctamente.')
     return redirect('/')
 
-
-def crear_excel_desde_plantilla(data, output_path):
+def crear_excel_en_memoria(data):
     wb = load_workbook("Copia de Alta de Cliente.xlsx")
     ws = wb["FICHA CLIENTE"]
 
-    # Mapeo de campos del formulario a celdas del Excel
+    # Mapeo de campos
     ws["B3"] = data.get("forma_pago")
     ws["B4"] = data.get("nombre")
     ws["B5"] = data.get("nif")
@@ -87,30 +79,30 @@ def crear_excel_desde_plantilla(data, output_path):
     ws["C38"] = data.get("contacto_documentacion")
     ws["C39"] = data.get("contacto_devoluciones")
 
-    wb.save(output_path)
+    # Guardar en memoria
+    excel_mem = io.BytesIO()
+    wb.save(excel_mem)
+    excel_mem.seek(0)
+    return excel_mem
 
-
-def enviar_correo_aviso(file_path, comercial_email=None):
+def enviar_correo_con_adjunto(archivo_memoria, correo_comercial=None, nombre_cliente="cliente"):
     msg = MIMEMultipart()
     msg['From'] = EMAIL_ADDRESS
     destinatarios = ['tesoreria@dimensasl.com']
-    if comercial_email:
-        destinatarios.append(comercial_email)
+    if correo_comercial:
+        destinatarios.append(correo_comercial)
     msg['To'] = ', '.join(destinatarios)
-    msg['Subject'] = 'Nuevo formulario de alta de cliente recibido'
+    msg['Subject'] = f'Nuevo formulario de alta de cliente recibido: {nombre_cliente}'
 
-    body = 'Se ha recibido un nuevo formulario de alta de cliente. Se adjunta el archivo Excel con la plantilla rellenada.'
+    body = 'Se ha recibido un nuevo formulario de alta de cliente. Se adjunta la plantilla rellenada.'
     msg.attach(MIMEText(body, 'plain'))
 
-    try:
-        with open(file_path, 'rb') as f:
-            part = MIMEBase('application', 'octet-stream')
-            part.set_payload(f.read())
-            encoders.encode_base64(part)
-            part.add_header('Content-Disposition', f'attachment; filename={os.path.basename(file_path)}')
-            msg.attach(part)
-    except Exception as e:
-        print(f'Error adjuntando el archivo: {e}')
+    # Adjuntar archivo desde memoria
+    part = MIMEBase('application', 'vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    part.set_payload(archivo_memoria.read())
+    encoders.encode_base64(part)
+    part.add_header('Content-Disposition', f'attachment; filename="Alta Cliente - {nombre_cliente}.xlsx"')
+    msg.attach(part)
 
     try:
         with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
@@ -120,9 +112,9 @@ def enviar_correo_aviso(file_path, comercial_email=None):
     except Exception as e:
         print(f'Error enviando el correo: {e}')
 
-
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
+
 
 
