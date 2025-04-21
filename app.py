@@ -34,46 +34,24 @@ def guardar():
     plantas_data = request.form.to_dict()
     data = {**form_data, **plantas_data}
 
-    # Crear el Excel en memoria
+    # Crear Excel (solo con campos esenciales por ahora)
     archivo_excel = crear_excel_en_memoria(data)
 
     # Enviar en segundo plano
-    hilo = threading.Thread(target=enviar_correo_con_adjunto, args=(archivo_excel, form_data.get('correo_comercial'), data.get('nombre')))
-    hilo.start()
+    threading.Thread(target=enviar_correo_con_adjunto, args=(archivo_excel, data.get('correo_comercial'), data.get('nombre'))).start()
 
-    # Mostrar página de gracias inmediatamente
     return render_template("gracias.html")
 
 def crear_excel_en_memoria(data):
     wb = load_workbook("Copia de Alta de Cliente.xlsx")
     ws = wb["FICHA CLIENTE"]
 
+    # ⚠️ Solo campos básicos por ahora
     ws["B3"] = data.get("forma_pago")
     ws["B4"] = data.get("nombre")
     ws["B5"] = data.get("nif")
     ws["D5"] = data.get("telefono_general")
     ws["B6"] = data.get("email_general")
-    ws["D6"] = data.get("web")
-    ws["B7"] = data.get("direccion")
-    ws["D7"] = data.get("cp")
-    ws["B8"] = data.get("poblacion")
-    ws["D8"] = data.get("provincia")
-    ws["D13"] = data.get("otra_forma_pago")
-
-    ws["B18"] = data.get("compras_nombre")
-    ws["D18"] = data.get("compras_telefono")
-    ws["B19"] = data.get("compras_email")
-    ws["B22"] = data.get("contabilidad_nombre")
-    ws["D22"] = data.get("contabilidad_telefono")
-    ws["B24"] = data.get("contabilidad_email")
-    ws["B27"] = data.get("facturacion_nombre")
-    ws["D27"] = data.get("facturacion_telefono")
-    ws["B29"] = data.get("facturacion_email")
-    ws["B32"] = data.get("descarga_nombre")
-    ws["D32"] = data.get("descarga_telefono")
-    ws["B34"] = data.get("descarga_email")
-    ws["C38"] = data.get("contacto_documentacion")
-    ws["C39"] = data.get("contacto_devoluciones")
 
     excel_mem = io.BytesIO()
     wb.save(excel_mem)
@@ -87,9 +65,9 @@ def enviar_correo_con_adjunto(archivo_memoria, correo_comercial=None, nombre_cli
     if correo_comercial:
         destinatarios.append(correo_comercial)
     msg['To'] = ', '.join(destinatarios)
-    msg['Subject'] = f'Nuevo formulario de alta de cliente recibido: {nombre_cliente}'
+    msg['Subject'] = f'Nuevo alta de cliente: {nombre_cliente}'
 
-    body = 'Se ha recibido un nuevo formulario de alta de cliente. Se adjunta la plantilla rellenada.'
+    body = 'Adjunto encontrarás la ficha de alta del cliente rellenada.'
     msg.attach(MIMEText(body, 'plain'))
 
     part = MIMEBase('application', 'vnd.openxmlformats-officedocument.spreadsheetml.sheet')
@@ -102,9 +80,9 @@ def enviar_correo_con_adjunto(archivo_memoria, correo_comercial=None, nombre_cli
         with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
             server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
             server.send_message(msg)
-        print('Correo enviado correctamente.')
+        print('✅ Correo enviado correctamente.')
     except Exception as e:
-        print(f'Error enviando el correo: {e}')
+        print(f'❌ Error al enviar correo: {e}')
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
