@@ -8,11 +8,11 @@ from datetime import datetime
 from openpyxl import load_workbook
 import os
 import io
+import threading
 
 app = Flask(__name__)
 app.secret_key = 'supersecretkey'
 
-# Configuración de email
 EMAIL_ADDRESS = 'migueladr191194@gmail.com'
 EMAIL_PASSWORD = 'zvup wjjv bwas tebs'
 
@@ -37,17 +37,17 @@ def guardar():
     # Crear el Excel en memoria
     archivo_excel = crear_excel_en_memoria(data)
 
-    # Enviar por correo
-    enviar_correo_con_adjunto(archivo_excel, form_data.get('correo_comercial'), data.get('nombre'))
+    # Enviar en segundo plano
+    hilo = threading.Thread(target=enviar_correo_con_adjunto, args=(archivo_excel, form_data.get('correo_comercial'), data.get('nombre')))
+    hilo.start()
 
-    flash('Formulario enviado correctamente.')
-    return redirect('/')
+    # Mostrar página de gracias inmediatamente
+    return render_template("gracias.html")
 
 def crear_excel_en_memoria(data):
     wb = load_workbook("Copia de Alta de Cliente.xlsx")
     ws = wb["FICHA CLIENTE"]
 
-    # Mapeo de campos
     ws["B3"] = data.get("forma_pago")
     ws["B4"] = data.get("nombre")
     ws["B5"] = data.get("nif")
@@ -63,23 +63,18 @@ def crear_excel_en_memoria(data):
     ws["B18"] = data.get("compras_nombre")
     ws["D18"] = data.get("compras_telefono")
     ws["B19"] = data.get("compras_email")
-
     ws["B22"] = data.get("contabilidad_nombre")
     ws["D22"] = data.get("contabilidad_telefono")
     ws["B24"] = data.get("contabilidad_email")
-
     ws["B27"] = data.get("facturacion_nombre")
     ws["D27"] = data.get("facturacion_telefono")
     ws["B29"] = data.get("facturacion_email")
-
     ws["B32"] = data.get("descarga_nombre")
     ws["D32"] = data.get("descarga_telefono")
     ws["B34"] = data.get("descarga_email")
-
     ws["C38"] = data.get("contacto_documentacion")
     ws["C39"] = data.get("contacto_devoluciones")
 
-    # Guardar en memoria
     excel_mem = io.BytesIO()
     wb.save(excel_mem)
     excel_mem.seek(0)
@@ -97,7 +92,6 @@ def enviar_correo_con_adjunto(archivo_memoria, correo_comercial=None, nombre_cli
     body = 'Se ha recibido un nuevo formulario de alta de cliente. Se adjunta la plantilla rellenada.'
     msg.attach(MIMEText(body, 'plain'))
 
-    # Adjuntar archivo desde memoria
     part = MIMEBase('application', 'vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     part.set_payload(archivo_memoria.read())
     encoders.encode_base64(part)
@@ -115,6 +109,7 @@ def enviar_correo_con_adjunto(archivo_memoria, correo_comercial=None, nombre_cli
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
+
 
 
 
