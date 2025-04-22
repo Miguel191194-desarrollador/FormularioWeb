@@ -47,7 +47,6 @@ def crear_excel_en_memoria(data):
     ws = wb["FICHA CLIENTE"]
 
     # ⚠️ Solo campos básicos por ahora
-    ws["B3"] = data.get("forma_pago")
     ws["B4"] = data.get("nombre")
     ws["B5"] = data.get("nif")
     ws["D5"] = data.get("telefono_general")
