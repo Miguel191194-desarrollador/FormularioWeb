@@ -157,6 +157,38 @@
             };
             correoComercialInput.value = comerciales[comercialSelect.value] || '';
         }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const formaPagoSelect = document.getElementById('forma_pago');
+            const sepaSection = document.getElementById('sepa_section');
+            const otraFormaPagoInput = document.querySelector('input[name="otra_forma_pago"]');
+
+            function toggleSepaSection() {
+                if (formaPagoSelect.value.startsWith('Recibo')) {
+                    sepaSection.style.display = 'block';
+                    // Añade 'required' dinámicamente a los campos SEPA
+                    document.querySelectorAll('#sepa_section input[type="text"]').forEach(input => input.required = true);
+                } else {
+                    sepaSection.style.display = 'none';
+                    // Elimina 'required' dinámicamente de los campos SEPA
+                    document.querySelectorAll('#sepa_section input[type="text"]').forEach(input => input.required = false);
+                }
+
+                // Muestra/oculta el campo "Otra forma de pago" según la selección
+                if (formaPagoSelect.value === 'Otro') {
+                    otraFormaPagoInput.style.display = 'block';
+                } else {
+                    otraFormaPagoInput.style.display = 'none';
+                }
+            }
+
+            // Llama a la función al cargar la página y cuando cambia la selección
+            toggleSepaSection();
+            formaPagoSelect.addEventListener('change', toggleSepaSection);
+
+            // Oculta el campo "Otra forma de pago" al inicio
+            otraFormaPagoInput.style.display = 'none';
+        });
     </script>
 </head>
 <body>
@@ -240,69 +272,64 @@
                 </div>
             </div>
 
-      <!-- Reemplaza TODO el bloque de forma de pago en tu HTML por este -->
+            <div class="section">
+                <div class="section-title"><i class="fas fa-credit-card"></i> Forma de Pago</div>
+                <div class="form-grid">
+                    <div>
+                        <label for="forma_pago">Forma de pago<span class="required">*</span></label>
+                        <select id="forma_pago" name="forma_pago" required>
+                            <option value="">Seleccionar forma de pago</option>
+                            <option value="Transferencia 0D">Transferencia 0D</option>
+                            <option value="Transferencia 30D">Transferencia 30D</option>
+                            <option value="Transferencia 60D">Transferencia 60D</option>
+                            <option value="Confirming 30D">Confirming 30D</option>
+                            <option value="Confirming 60D">Confirming 60D</option>
+                            <option value="Recibo 30D">Recibo 30D</option>
+                            <option value="Recibo 60D">Recibo 60D</option>
+                            <option value="Otro">Otro</option>
+                        </select>
+                    </div>
+                    <div style="display: none;">
+                        <label>Otra forma de pago</label>
+                        <input type="text" name="otra_forma_pago">
+                    </div>
+                </div>
 
-<div class="section">
-    <div class="section-title"><i class="fas fa-credit-card"></i> Forma de Pago</div>
-    <div class="form-grid">
-        <div>
-            <label for="forma_pago">Forma de pago<span class="required">*</span></label>
-            <select id="forma_pago" name="forma_pago" required>
-                <option value="">Seleccionar forma de pago</option>
-                <option value="Transferencia 0D">Transferencia 0D</option>
-                <option value="Transferencia 30D">Transferencia 30D</option>
-                <option value="Transferencia 60D">Transferencia 60D</option>
-                <option value="Confirming 30D">Confirming 30D</option>
-                <option value="Confirming 60D">Confirming 60D</option>
-                <option value="Recibo 30D">Recibo 30D</option>
-                <option value="Recibo 60D">Recibo 60D</option>
-                <option value="Otro">Otro</option>
-            </select>
-        </div>
-        <div>
-            <label>Otra forma de pago</label>
-            <input type="text" name="otra_forma_pago">
-        </div>
-    </div>
+                <div id="sepa_section" style="display:none; margin-top: 30px;">
+                    <h3 style="color:#003366; font-size: 20px; margin-bottom: 20px;">
+                        ORDEN DE DOMICILIACIÓN DE ADEUDO DIRECTO SEPA
+                    </h3>
+                    <div class="form-grid">
+                        <div>
+                            <label>Nombre entidad bancaria<span class="required">*</span></label>
+                            <input type="text" name="sepa_nombre_banco">
+                        </div>
+                        <div>
+                            <label>Domicilio entidad bancaria<span class="required">*</span></label>
+                            <input type="text" name="sepa_domicilio_banco">
+                        </div>
+                        <div>
+                            <label>Código postal<span class="required">*</span></label>
+                            <input type="text" name="sepa_cp">
+                        </div>
+                        <div>
+                            <label>Población<span class="required">*</span></label>
+                            <input type="text" name="sepa_poblacion">
+                        </div>
+                        <div>
+                            <label>Provincia<span class="required">*</span></label>
+                            <input type="text" name="sepa_provincia">
+                        </div>
+                    </div>
 
-    <!-- Sección SEPA que aparece solo si se selecciona 'Recibo' -->
-    <div id="sepa_section" style="display:none; margin-top: 30px;">
-        <h3 style="color:#003366; font-size: 20px; margin-bottom: 20px;">
-            ORDEN DE DOMICILIACIÓN DE ADEUDO DIRECTO SEPA
-        </h3>
-        <div class="form-grid">
-            <div>
-                <label>Nombre entidad bancaria<span class="required">*</span></label>
-                <input type="text" name="sepa_nombre_banco">
+                    <div style="margin-top: 20px;">
+                        <label>Nº DE CUENTA (IBAN 24 caracteres)<span class="required">*</span></label>
+                        <div style="display: grid; grid-template-columns: repeat(8, 1fr); gap: 5px;">
+                            ${Array.from({ length: 24 }, (_, i) => `<input type="text" name="iban_${i + 1}" maxlength="1" style="text-align:center;">`).join('')}
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div>
-                <label>Domicilio entidad bancaria<span class="required">*</span></label>
-                <input type="text" name="sepa_domicilio_banco">
-            </div>
-            <div>
-                <label>Código postal<span class="required">*</span></label>
-                <input type="text" name="sepa_cp">
-            </div>
-            <div>
-                <label>Población<span class="required">*</span></label>
-                <input type="text" name="sepa_poblacion">
-            </div>
-            <div>
-                <label>Provincia<span class="required">*</span></label>
-                <input type="text" name="sepa_provincia">
-            </div>
-        </div>
-
-        <div style="margin-top: 20px;">
-            <label>Nº DE CUENTA (IBAN 24 caracteres)<span class="required">*</span></label>
-            <div style="display: grid; grid-template-columns: repeat(8, 1fr); gap: 5px;">
-                <!-- Casillas individuales para el IBAN -->
-                <!-- Puedes copiar y pegar si necesitas más inputs -->
-                ${[...Array(24)].map((_, i) => `<input type="text" name="iban_${i+1}" maxlength="1" style="text-align:center;">`).join('')}
-            </div>
-        </div>
-    </div>
-</div>
 
 
             <div class="section">
@@ -389,18 +416,7 @@
                         <input type="email" name="contacto_devoluciones" required>
                     </div>
                 </div>
-            </div>
 
-        </div>
-
-        <div style="text-align: center;">
-            <button type="submit">Siguiente <i class="fas fa-arrow-right"></i></button>
-        </div>
-    </div>
-</form>
-
-</body>
-</html>
 
 
 
