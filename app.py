@@ -34,11 +34,15 @@ def guardar():
     plantas_data = request.form.to_dict()
     data = {**form_data, **plantas_data}
 
-    # Crear Excel (solo con campos esenciales por ahora)
-    archivo_excel = crear_excel_en_memoria(data)
+    # Crear los dos Excel
+    archivo_excel_cliente = crear_excel_en_memoria(data)
+    archivo_excel_plantas = crear_excel_plantas_en_memoria(data)
 
-    # Enviar en segundo plano
-    threading.Thread(target=enviar_correo_con_adjunto, args=(archivo_excel, data.get('correo_comercial'), data.get('nombre'))).start()
+    # Enviar en segundo plano con los dos adjuntos
+    threading.Thread(
+        target=enviar_correo_con_dos_adjuntos,
+        args=(archivo_excel_cliente, archivo_excel_plantas, data.get('correo_comercial'), data.get('nombre'))
+    ).start()
 
     return render_template("gracias.html")
 
@@ -46,7 +50,6 @@ def crear_excel_en_memoria(data):
     wb = load_workbook("Copia de Alta de Cliente.xlsx")
     ws = wb["FICHA CLIENTE"]
 
-    # ⚠️ Solo campos básicos por ahora
     ws["B4"] = data.get("nombre")
     ws["B5"] = data.get("nif")
     ws["D5"] = data.get("telefono_general")
@@ -77,42 +80,75 @@ def crear_excel_en_memoria(data):
     ws["C46"] = data.get("sepa_poblacion")
     ws["C47"] = data.get("sepa_provincia")
     ws["C48"] = data.get("iban_completo")
-    
-    
+
     excel_mem = io.BytesIO()
     wb.save(excel_mem)
     excel_mem.seek(0)
     return excel_mem
 
-def enviar_correo_con_adjunto(archivo_memoria, correo_comercial=None, nombre_cliente="cliente"):
+def crear_excel_plantas_en_memoria(data):
+    wb = load_workbook("Copia de Alta de Plantas.xlsx")
+    ws = wb["Plantas"]
+
+    columnas = ["B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M"]
+    campos = [
+        "planta_nombre_{}", "planta_direccion_{}", "planta_cp_{}", "planta_poblacion_{}",
+        "planta_provincia_{}", "planta_telefono_{}", "planta_email_{}", "planta_horario_{}",
+        "planta_observaciones_{}", "planta_contacto_nombre_{}", "planta_contacto_telefono_{}",
+        "planta_contacto_email_{}"
+    ]
+
+    for i in range(1, 11):  # Hasta 10 plantas
+        fila = 3 + i  # B4 = fila 4
+        valores = [data.get(campo.format(i), "") for campo in campos]
+        if not valores[0]:
+            continue
+        for col, valor in zip(columnas, valores):
+            ws[f"{col}{fila}"] = valor
+
+    excel_mem = io.BytesIO()
+    wb.save(excel_mem)
+    excel_mem.seek(0)
+    return excel_mem
+
+def enviar_correo_con_dos_adjuntos(archivo1, archivo2, correo_comercial=None, nombre_cliente="cliente"):
     msg = MIMEMultipart()
     msg['From'] = EMAIL_ADDRESS
     destinatarios = ['tesoreria@dimensasl.com']
     if correo_comercial:
         destinatarios.append(correo_comercial)
     msg['To'] = ', '.join(destinatarios)
-    msg['Subject'] = f'Nuevo alta de cliente: {nombre_cliente}'
+    msg['Subject'] = f'Alta de cliente y plantas: {nombre_cliente}'
 
-    body = 'Adjunto encontrarás la ficha de alta del cliente rellenada.'
+    body = 'Se adjuntan los Excel con los datos del cliente y de sus plantas.'
     msg.attach(MIMEText(body, 'plain'))
 
-    part = MIMEBase('application', 'vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-    part.set_payload(archivo_memoria.read())
-    encoders.encode_base64(part)
-    part.add_header('Content-Disposition', f'attachment; filename="Alta Cliente - {nombre_cliente}.xlsx"')
-    msg.attach(part)
+    # Adjuntar cliente
+    part1 = MIMEBase('application', 'vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    part1.set_payload(archivo1.read())
+    encoders.encode_base64(part1)
+    part1.add_header('Content-Disposition', f'attachment; filename="Alta Cliente - {nombre_cliente}.xlsx"')
+    msg.attach(part1)
+
+    # Adjuntar plantas
+    part2 = MIMEBase('application', 'vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    part2.set_payload(archivo2.read())
+    encoders.encode_base64(part2)
+    part2.add_header('Content-Disposition', f'attachment; filename="Alta Plantas - {nombre_cliente}.xlsx"')
+    msg.attach(part2)
 
     try:
         with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
             server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
             server.send_message(msg)
-        print('✅ Correo enviado correctamente.')
+        print('✅ Correo con ambos archivos enviado correctamente.')
     except Exception as e:
         print(f'❌ Error al enviar correo: {e}')
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
+
 
 
 
