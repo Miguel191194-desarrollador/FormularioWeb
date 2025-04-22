@@ -37,6 +37,7 @@
             padding: 40px;
             border-radius: 12px;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            min-height: 800px; /* Ajusta este valor según sea necesario */
         }
 
         h2 {
@@ -199,7 +200,7 @@
 </header>
 
 <form action="/plantas" method="post">
-    <div class="container">
+    <div class="container" style="min-height: 800px;">
         <h2>Formulario de Alta de Cliente</h2>
 
         <div class="sections">
@@ -322,10 +323,11 @@
                         </div>
                     </div>
 
-          <div style="margin-top: 20px;">
+                    <div style="margin-top: 20px;">
                         <label for="iban_completo">Nº DE CUENTA (IBAN 24 caracteres)<span class="required">*</span></label>
                         <input type="text" id="iban_completo" name="iban_completo" maxlength="24" placeholder="Introduce 24 caracteres" style="width: 100%;">
                     </div>
+                </div>
 
 
             <div class="section">
@@ -354,11 +356,12 @@
                         <input type="text" name="contabilidad_nombre" required>
                     </div>
                     <div>
-                        <label>Teléfono
-
-                       </div>
+                        <label>Teléfono<span class="required">*</span></label>
+                        <input type="text" name="contabilidad_telefono" required>
+                    </div>
                     <div>
-                        <label>Correo electrónico<span class="required">*</span></label>
+                        <label>Correo electrónico<span class="required">*
+                            </span></label>
                         <input type="email" name="contabilidad_email" required>
                     </div>
                 </div>
@@ -421,7 +424,7 @@
 </form>
 
 </body>
-</html>     
+</html>
 
 
 
