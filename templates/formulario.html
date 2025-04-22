@@ -325,11 +325,33 @@
                     <div style="margin-top: 20px;">
                         <label>Nº DE CUENTA (IBAN 24 caracteres)<span class="required">*</span></label>
                         <div style="display: grid; grid-template-columns: repeat(8, 1fr); gap: 5px;">
-                            ${Array.from({ length: 24 }, (_, i) => `<input type="text" name="iban_${i + 1}" maxlength="1" style="text-align:center;">`).join('')}
+                            <input type="text" name="iban_1" maxlength="1" style="text-align:center;">
+                            <input type="text" name="iban_2" maxlength="1" style="text-align:center;">
+                            <input type="text" name="iban_3" maxlength="1" style="text-align:center;">
+                            <input type="text" name="iban_4" maxlength="1" style="text-align:center;">
+                            <input type="text" name="iban_5" maxlength="1" style="text-align:center;">
+                            <input type="text" name="iban_6" maxlength="1" style="text-align:center;">
+                            <input type="text" name="iban_7" maxlength="1" style="text-align:center;">
+                            <input type="text" name="iban_8" maxlength="1" style="text-align:center;">
+                            <input type="text" name="iban_9" maxlength="1" style="text-align:center;">
+                            <input type="text" name="iban_10" maxlength="1" style="text-align:center;">
+                            <input type="text" name="iban_11" maxlength="1" style="text-align:center;">
+                            <input type="text" name="iban_12" maxlength="1" style="text-align:center;">
+                            <input type="text" name="iban_13" maxlength="1" style="text-align:center;">
+                            <input type="text" name="iban_14" maxlength="1" style="text-align:center;">
+                            <input type="text" name="iban_15" maxlength="1" style="text-align:center;">
+                            <input type="text" name="iban_16" maxlength="1" style="text-align:center;">
+                            <input type="text" name="iban_17" maxlength="1" style="text-align:center;">
+                            <input type="text" name="iban_18" maxlength="1" style="text-align:center;">
+                            <input type="text" name="iban_19" maxlength="1" style="text-align:center;">
+                            <input type="text" name="iban_20" maxlength="1" style="text-align:center;">
+                            <input type="text" name="iban_21" maxlength="1" style="text-align:center;">
+                            <input type="text" name="iban_22" maxlength="1" style="text-align:center;">
+                            <input type="text" name="iban_23" maxlength="1" style="text-align:center;">
+                            <input type="text" name="iban_24" maxlength="1" style="text-align:center;">
                         </div>
                     </div>
                 </div>
-            </div>
 
 
             <div class="section">
@@ -358,9 +380,9 @@
                         <input type="text" name="contabilidad_nombre" required>
                     </div>
                     <div>
-                        <label>Teléfono<span class="required">*</span></label>
-                        <input type="text" name="contabilidad_telefono" required>
-                    </div>
+                        <label>Teléfono
+
+                       </div>
                     <div>
                         <label>Correo electrónico<span class="required">*</span></label>
                         <input type="email" name="contabilidad_email" required>
@@ -416,6 +438,16 @@
                         <input type="email" name="contacto_devoluciones" required>
                     </div>
                 </div>
+            </div>
+
+        <div style="text-align: center;">
+            <button type="submit">Siguiente <i class="fas fa-arrow-right"></i></button>
+        </div>
+    </div>
+</form>
+
+</body>
+</html>     
 
 
 
