@@ -5,7 +5,6 @@
     <title>Ficha Plantas - Dimensa</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* Tus estilos originales aquí, los mantengo igual */
         body {
             background-color: #f4f7f8;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -82,7 +81,6 @@
             font-size: 14px;
         }
 
-        /* Asterisco en las etiquetas */
         label::after {
             content: " *";
             color: red;
@@ -104,6 +102,21 @@
         input[type="email"]:focus {
             border-color: #003366;
             outline: none;
+        }
+
+        .alert {
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid transparent;
+            border-radius: 4px;
+            font-size: 16px;
+            text-align: center;
+        }
+
+        .alert-danger {
+            color: #a94442;
+            background-color: #f2dede;
+            border-color: #ebccd1;
         }
 
         button {
@@ -148,6 +161,16 @@
 <form action="/guardar" method="post" onsubmit="return validarFormulario();">
     <div class="container">
         <h2>Datos de las Plantas</h2>
+
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+        <div class="alert alert-danger">
+            {% for message in messages %}
+            <div>{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
 
         {% for i in range(1, 11) %}
         <div class="section" id="planta_{{ i }}">
@@ -201,4 +224,5 @@ function validarFormulario() {
 
 </body>
 </html>
+
 
