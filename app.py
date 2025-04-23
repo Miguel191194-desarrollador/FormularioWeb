@@ -42,8 +42,8 @@ def guardar():
             break
 
     if not hay_una_planta:
-        flash('Debes rellenar al menos una planta antes de continuar.')
-        return redirect('/plantas')
+        flash('⚠️ Debes rellenar al menos los datos de una planta antes de continuar.')
+        return render_template('plantas.html')
 
     # Crear los dos Excel
     archivo_excel_cliente = crear_excel_en_memoria(data)
@@ -159,6 +159,7 @@ def enviar_correo_con_dos_adjuntos(archivo1, archivo2, correo_comercial=None, no
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
+
 
 
 
