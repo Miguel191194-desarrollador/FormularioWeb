@@ -34,7 +34,6 @@ def guardar():
     plantas_data = request.form.to_dict()
     data = {**form_data, **plantas_data}
 
-    # Validar que al menos una planta esté rellenada
     hay_una_planta = False
     for i in range(1, 11):
         if plantas_data.get(f'planta_nombre_{i}'):
@@ -45,14 +44,12 @@ def guardar():
         flash('⚠️ Debes rellenar al menos los datos de una planta antes de continuar.')
         return render_template('plantas.html')
 
-    # Crear los dos Excel
     archivo_excel_cliente = crear_excel_en_memoria(data)
     archivo_excel_plantas = crear_excel_plantas_en_memoria(data)
 
-    # Enviar en segundo plano con los dos adjuntos
     threading.Thread(
         target=enviar_correo_con_dos_adjuntos,
-        args=(archivo_excel_cliente, archivo_excel_plantas, data.get('correo_comercial'), data.get('nombre'))
+        args=(archivo_excel_cliente, archivo_excel_plantas, data.get('correo_comercial'), data.get('nombre'), data.get('sector'), data.get('subsector'))
     ).start()
 
     return render_template("gracias.html")
@@ -109,8 +106,8 @@ def crear_excel_plantas_en_memoria(data):
         "planta_contacto_email_{}"
     ]
 
-    for i in range(1, 11):  # Hasta 10 plantas
-        fila = 3 + i  # B4 = fila 4
+    for i in range(1, 11):
+        fila = 3 + i
         valores = [data.get(campo.format(i), "") for campo in campos]
         if not valores[0]:
             continue
@@ -122,7 +119,7 @@ def crear_excel_plantas_en_memoria(data):
     excel_mem.seek(0)
     return excel_mem
 
-def enviar_correo_con_dos_adjuntos(archivo1, archivo2, correo_comercial=None, nombre_cliente="cliente"):
+def enviar_correo_con_dos_adjuntos(archivo1, archivo2, correo_comercial=None, nombre_cliente="cliente", sector="", subsector=""):
     msg = MIMEMultipart()
     msg['From'] = EMAIL_ADDRESS
     destinatarios = ['tesoreria@dimensasl.com']
@@ -131,17 +128,40 @@ def enviar_correo_con_dos_adjuntos(archivo1, archivo2, correo_comercial=None, no
     msg['To'] = ', '.join(destinatarios)
     msg['Subject'] = f'Alta de cliente y plantas: {nombre_cliente}'
 
-    body = 'Se adjuntan los Excel con los datos del cliente y de sus plantas.'
-    msg.attach(MIMEText(body, 'plain'))
+    body = f"""
+    <html>
+    <body>
+    <p>Buenas,</p>
+    <p>Se ha completado el alta de un nuevo cliente en el sistema: <strong>{nombre_cliente}</strong>.</p>
 
-    # Adjuntar cliente
+    <p>Adjuntamos en este correo dos archivos Excel:<br>
+    - Uno con los datos generales del cliente.<br>
+    - Otro con la información detallada de sus plantas.</p>
+
+    <p><strong><span style='color:red;'>⚠️ IMPORTANTE: REENVIAR ESTE CORREO A MIGUEL INDICANDO EL RIESGO A SOLICITAR PARA ESTE CLIENTE.</span></strong></p>
+
+    <p><strong>Valores posibles:</strong><br>
+    0, 500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000, 20000</p>
+
+    <p><strong>Sector:</strong> {sector}<br>
+    <strong>Subsector:</strong> {subsector}</p>
+
+    <p><strong>Lista de sectores disponibles:</strong><br>
+    Agricultura, Aguas, Alimentación, Distribuidor, Ganadería, Industrial, Piscinas, Sector0</p>
+
+    <p>Gracias por vuestra colaboración.</p>
+    <p>Un saludo,<br>Departamento de Administración</p>
+    </body>
+    </html>
+    """
+    msg.attach(MIMEText(body, 'html'))
+
     part1 = MIMEBase('application', 'vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     part1.set_payload(archivo1.read())
     encoders.encode_base64(part1)
     part1.add_header('Content-Disposition', f'attachment; filename="Alta Cliente - {nombre_cliente}.xlsx"')
     msg.attach(part1)
 
-    # Adjuntar plantas
     part2 = MIMEBase('application', 'vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     part2.set_payload(archivo2.read())
     encoders.encode_base64(part2)
@@ -159,6 +179,7 @@ def enviar_correo_con_dos_adjuntos(archivo1, archivo2, correo_comercial=None, no
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
+
 
 
 
