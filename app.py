@@ -141,34 +141,43 @@ def enviar_correo_con_dos_adjuntos(archivo1, archivo2, correo_comercial=None, no
     <p><strong><span style='color:red;'>⚠️ IMPORTANTE: REENVIAR ESTE CORREO A MIGUEL INDICANDO EL RIESGO A SOLICITAR PARA ESTE CLIENTE, SECTOR Y SUBSECTOR.</span></strong></p>
 
     <p><strong>Seleccione el riesgo y el sector marcando la casilla correspondiente:</strong></p>
-    <table style="display: inline-block; margin-right: 40px; border-collapse: collapse; vertical-align: top;">
-        <tr><th style="padding: 5px;">Riesgo</th><th style="padding: 5px;">Selección</th></tr>
-        <tr><td style="padding: 5px;">0</td><td style="padding: 5px;"><input type="checkbox" name="riesgo" value="0"></td></tr>
-        <tr><td style="padding: 5px;">500</td><td style="padding: 5px;"><input type="checkbox" name="riesgo" value="500"></td></tr>
-        <tr><td style="padding: 5px;">1000</td><td style="padding: 5px;"><input type="checkbox" name="riesgo" value="1000"></td></tr>
-        <tr><td style="padding: 5px;">1500</td><td style="padding: 5px;"><input type="checkbox" name="riesgo" value="1500"></td></tr>
-        <tr><td style="padding: 5px;">2000</td><td style="padding: 5px;"><input type="checkbox" name="riesgo" value="2000"></td></tr>
-        <tr><td style="padding: 5px;">2500</td><td style="padding: 5px;"><input type="checkbox" name="riesgo" value="2500"></td></tr>
-        <tr><td style="padding: 5px;">3000</td><td style="padding: 5px;"><input type="checkbox" name="riesgo" value="3000"></td></tr>
-        <tr><td style="padding: 5px;">3500</td><td style="padding: 5px;"><input type="checkbox" name="riesgo" value="3500"></td></tr>
-        <tr><td style="padding: 5px;">4000</td><td style="padding: 5px;"><input type="checkbox" name="riesgo" value="4000"></td></tr>
-        <tr><td style="padding: 5px;">4500</td><td style="padding: 5px;"><input type="checkbox" name="riesgo" value="4500"></td></tr>
-        <tr><td style="padding: 5px;">5000</td><td style="padding: 5px;"><input type="checkbox" name="riesgo" value="5000"></td></tr>
-        <tr><td style="padding: 5px;">20000</td><td style="padding: 5px;"><input type="checkbox" name="riesgo" value="20000"></td></tr>
-        <tr><td style="padding: 5px;">Otro (especificar)</td><td style="padding: 5px;"><input type="text" name="riesgo_otro" placeholder="Escriba aquí el riesgo"></td></tr>
-    </table>
-
-    <table style="display: inline-block; border-collapse: collapse; vertical-align: top;">
-        <tr><th style="padding: 5px;">Sector</th><th style="padding: 5px;">Selección</th></tr>
-        <tr><td style="padding: 5px;">Agricultura</td><td style="padding: 5px;"><input type="checkbox" name="sector" value="Agricultura"></td></tr>
-        <tr><td style="padding: 5px;">Aguas</td><td style="padding: 5px;"><input type="checkbox" name="sector" value="Aguas"></td></tr>
-        <tr><td style="padding: 5px;">Alimentación</td><td style="padding: 5px;"><input type="checkbox" name="sector" value="Alimentación"></td></tr>
-        <tr><td style="padding: 5px;">Distribuidor</td><td style="padding: 5px;"><input type="checkbox" name="sector" value="Distribuidor"></td></tr>
-        <tr><td style="padding: 5px;">Ganadería</td><td style="padding: 5px;"><input type="checkbox" name="sector" value="Ganadería"></td></tr>
-        <tr><td style="padding: 5px;">Industrial</td><td style="padding: 5px;"><input type="checkbox" name="sector" value="Industrial"></td></tr>
-        <tr><td style="padding: 5px;">Piscinas</td><td style="padding: 5px;"><input type="checkbox" name="sector" value="Piscinas"></td></tr>
-        <tr><td style="padding: 5px;">Sector0</td><td style="padding: 5px;"><input type="checkbox" name="sector" value="Sector0"></td></tr>
-    </table>
+    <div style="display: flex;">
+        <table style="margin-right: 40px; border-collapse: collapse; vertical-align: top; border: 1px solid black;">
+            <thead>
+                <tr><th style="padding: 5px; border: 1px solid black;">Riesgo</th><th style="padding: 5px; border: 1px solid black;">Selección</th></tr>
+            </thead>
+            <tbody>
+                <tr><td style="padding: 5px; border: 1px solid black;">0</td><td style="padding: 5px; border: 1px solid black;"><input type="checkbox" name="riesgo" value="0"></td></tr>
+                <tr><td style="padding: 5px; border: 1px solid black;">500</td><td style="padding: 5px; border: 1px solid black;"><input type="checkbox" name="riesgo" value="500"></td></tr>
+                <tr><td style="padding: 5px; border: 1px solid black;">1000</td><td style="padding: 5px; border: 1px solid black;"><input type="checkbox" name="riesgo" value="1000"></td></tr>
+                <tr><td style="padding: 5px; border: 1px solid black;">1500</td><td style="padding: 5px; border: 1px solid black;"><input type="checkbox" name="riesgo" value="1500"></td></tr>
+                <tr><td style="padding: 5px; border: 1px solid black;">2000</td><td style="padding: 5px; border: 1px solid black;"><input type="checkbox" name="riesgo" value="2000"></td></tr>
+                <tr><td style="padding: 5px; border: 1px solid black;">2500</td><td style="padding: 5px; border: 1px solid black;"><input type="checkbox" name="riesgo" value="2500"></td></tr>
+                <tr><td style="padding: 5px; border: 1px solid black;">3000</td><td style="padding: 5px; border: 1px solid black;"><input type="checkbox" name="riesgo" value="3000"></td></tr>
+                <tr><td style="padding: 5px; border: 1px solid black;">3500</td><td style="padding: 5px; border: 1px solid black;"><input type="checkbox" name="riesgo" value="3500"></td></tr>
+                <tr><td style="padding: 5px; border: 1px solid black;">4000</td><td style="padding: 5px; border: 1px solid black;"><input type="checkbox" name="riesgo" value="4000"></td></tr>
+                <tr><td style="padding: 5px; border: 1px solid black;">4500</td><td style="padding: 5px; border: 1px solid black;"><input type="checkbox" name="riesgo" value="4500"></td></tr>
+                <tr><td style="padding: 5px; border: 1px solid black;">5000</td><td style="padding: 5px; border: 1px solid black;"><input type="checkbox" name="riesgo" value="5000"></td></tr>
+                <tr><td style="padding: 5px; border: 1px solid black;">20000</td><td style="padding: 5px; border: 1px solid black;"><input type="checkbox" name="riesgo" value="20000"></td></tr>
+                <tr><td style="padding: 5px; border: 1px solid black;">Otro (especificar)</td><td style="padding: 5px; border: 1px solid black;"><input type="text" name="riesgo_otro" placeholder="Escriba aquí el riesgo"></td></tr>
+            </tbody>
+        </table>
+        <table style="border-collapse: collapse; vertical-align: top; border: 1px solid black;">
+            <thead>
+                <tr><th style="padding: 5px; border: 1px solid black;">Sector</th><th style="padding: 5px; border: 1px solid black;">Selección</th></tr>
+            </thead>
+            <tbody>
+                <tr><td style="padding: 5px; border: 1px solid black;">Agricultura</td><td style="padding: 5px; border: 1px solid black;"><input type="checkbox" name="sector" value="Agricultura"></td></tr>
+                <tr><td style="padding: 5px; border: 1px solid black;">Aguas</td><td style="padding: 5px; border: 1px solid black;"><input type="checkbox" name="sector" value="Aguas"></td></tr>
+                <tr><td style="padding: 5px; border: 1px solid black;">Alimentación</td><td style="padding: 5px; border: 1px solid black;"><input type="checkbox" name="sector" value="Alimentación"></td></tr>
+                <tr><td style="padding: 5px; border: 1px solid black;">Distribuidor</td><td style="padding: 5px; border: 1px solid black;"><input type="checkbox" name="sector" value="Distribuidor"></td></tr>
+                <tr><td style="padding: 5px; border: 1px solid black;">Ganadería</td><td style="padding: 5px; border: 1px solid black;"><input type="checkbox" name="sector" value="Ganadería"></td></tr>
+                <tr><td style="padding: 5px; border: 1px solid black;">Industrial</td><td style="padding: 5px; border: 1px solid black;"><input type="checkbox" name="sector" value="Industrial"></td></tr>
+                <tr><td style="padding: 5px; border: 1px solid black;">Piscinas</td><td style="padding: 5px; border: 1px solid black;"><input type="checkbox" name="sector" value="Piscinas"></td></tr>
+                <tr><td style="padding: 5px; border: 1px solid black;">Sector0</td><td style="padding: 5px; border: 1px solid black;"><input type="checkbox" name="sector" value="Sector0"></td></tr>
+            </tbody>
+        </table>
+    </div>
 
     <p>Gracias por vuestra colaboración.</p>
     <p>Un saludo,<br>Departamento de Tesorería</p>
@@ -196,7 +205,6 @@ def enviar_correo_con_dos_adjuntos(archivo1, archivo2, correo_comercial=None, no
         print('✅ Correo con ambos archivos enviado correctamente.')
     except Exception as e:
         print(f'❌ Error al enviar correo: {e}')
-
 
 
 
