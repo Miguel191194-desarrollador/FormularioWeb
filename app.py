@@ -140,14 +140,35 @@ def enviar_correo_con_dos_adjuntos(archivo1, archivo2, correo_comercial=None, no
 
     <p><strong><span style='color:red;'>⚠️ IMPORTANTE: REENVIAR ESTE CORREO A MIGUEL INDICANDO EL RIESGO A SOLICITAR PARA ESTE CLIENTE.</span></strong></p>
 
-    <p><strong>Valores posibles:</strong><br>
-    0, 500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000, 20000</p>
+    <p><strong>Seleccione el riesgo marcando la casilla correspondiente:</strong></p>
+    <table border="1" cellpadding="5" cellspacing="0">
+      <tr><th>Riesgo</th><th>Selección</th></tr>
+      <tr><td>0</td><td><input type="checkbox"></td></tr>
+      <tr><td>500</td><td><input type="checkbox"></td></tr>
+      <tr><td>1000</td><td><input type="checkbox"></td></tr>
+      <tr><td>1500</td><td><input type="checkbox"></td></tr>
+      <tr><td>2000</td><td><input type="checkbox"></td></tr>
+      <tr><td>2500</td><td><input type="checkbox"></td></tr>
+      <tr><td>3000</td><td><input type="checkbox"></td></tr>
+      <tr><td>3500</td><td><input type="checkbox"></td></tr>
+      <tr><td>4000</td><td><input type="checkbox"></td></tr>
+      <tr><td>4500</td><td><input type="checkbox"></td></tr>
+      <tr><td>5000</td><td><input type="checkbox"></td></tr>
+      <tr><td>20000</td><td><input type="checkbox"></td></tr>
+    </table>
 
-    <p><strong>Sector:</strong> {sector}<br>
-    <strong>Subsector:</strong> {subsector}</p>
-
-    <p><strong>Lista de sectores disponibles:</strong><br>
-    Agricultura, Aguas, Alimentación, Distribuidor, Ganadería, Industrial, Piscinas, Sector0</p>
+    <p><strong>Seleccione el sector marcando la casilla correspondiente:</strong></p>
+    <table border="1" cellpadding="5" cellspacing="0">
+      <tr><th>Sector</th><th>Selección</th></tr>
+      <tr><td>Agricultura</td><td><input type="checkbox"></td></tr>
+      <tr><td>Aguas</td><td><input type="checkbox"></td></tr>
+      <tr><td>Alimentación</td><td><input type="checkbox"></td></tr>
+      <tr><td>Distribuidor</td><td><input type="checkbox"></td></tr>
+      <tr><td>Ganadería</td><td><input type="checkbox"></td></tr>
+      <tr><td>Industrial</td><td><input type="checkbox"></td></tr>
+      <tr><td>Piscinas</td><td><input type="checkbox"></td></tr>
+      <tr><td>Sector0</td><td><input type="checkbox"></td></tr>
+    </table>
 
     <p>Gracias por vuestra colaboración.</p>
     <p>Un saludo,<br>Departamento de Administración</p>
@@ -175,11 +196,6 @@ def enviar_correo_con_dos_adjuntos(archivo1, archivo2, correo_comercial=None, no
         print('✅ Correo con ambos archivos enviado correctamente.')
     except Exception as e:
         print(f'❌ Error al enviar correo: {e}')
-
-if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port)
-
 
 
 
