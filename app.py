@@ -128,7 +128,7 @@ def enviar_correo_con_dos_adjuntos(archivo1, archivo2, correo_comercial=None, no
     msg['To'] = ', '.join(destinatarios)
     msg['Subject'] = f'Alta de cliente y plantas: {nombre_cliente}'
 
-    body = f"""
+       body = f"""
     <html>
     <body>
     <p>Buenas,</p>
@@ -140,48 +140,75 @@ def enviar_correo_con_dos_adjuntos(archivo1, archivo2, correo_comercial=None, no
 
     <p><strong><span style='color:red;'>⚠️ IMPORTANTE: REENVIAR ESTE CORREO A MIGUEL INDICANDO EL RIESGO A SOLICITAR PARA ESTE CLIENTE, SECTOR Y SUBSECTOR.</span></strong></p>
 
-    <p><strong>Seleccione el riesgo, sector y subsector marcando la casilla correspondiente:</strong></p>
+    <p><strong>Seleccione el riesgo, el sector y el subsector marcando la casilla correspondiente:</strong></p>
 
-    <table style="width: 100%; border-collapse: collapse;">
+    <table style="width: 100%; border-collapse: collapse;" cellspacing="15">
       <tr>
-        <td style="vertical-align: top; padding-right: 5px;">
-          <!-- Tabla de riesgo -->
+        <!-- Tabla de Riesgo -->
+        <td style="vertical-align: top;">
           <table style="border-collapse: collapse; border: 1px solid black;">
             <thead>
               <tr><th style="padding: 5px; border: 1px solid black;">Riesgo</th><th style="padding: 5px; border: 1px solid black;">Selección</th></tr>
             </thead>
             <tbody>
-              <tr><td style="padding: 5px; border: 1px solid black;">0</td><td style="padding: 5px; border: 1px solid black;"><input type="checkbox"></td></tr>
-              <tr><td style="padding: 5px; border: 1px solid black;">500</td><td style="padding: 5px; border: 1px solid black;"><input type="checkbox"></td></tr>
-              <tr><td style="padding: 5px; border: 1px solid black;">1000</td><td style="padding: 5px; border: 1px solid black;"><input type="checkbox"></td></tr>
-              <tr><td style="padding: 5px; border: 1px solid black;">1500</td><td style="padding: 5px; border: 1px solid black;"><input type="checkbox"></td></tr>
-              <tr><td style="padding: 5px; border: 1px solid black;">2000</td><td style="padding: 5px; border: 1px solid black;"><input type="checkbox"></td></tr>
-              <tr><td style="padding: 5px; border: 1px solid black;">2500</td><td style="padding: 5px; border: 1px solid black;"><input type="checkbox"></td></tr>
-              <tr><td style="padding: 5px; border: 1px solid black;">3000</td><td style="padding: 5px; border: 1px solid black;"><input type="checkbox"></td></tr>
-              <tr><td style="padding: 5px; border: 1px solid black;">3500</td><td style="padding: 5px; border: 1px solid black;"><input type="checkbox"></td></tr>
-              <tr><td style="padding: 5px; border: 1px solid black;">4000</td><td style="padding: 5px; border: 1px solid black;"><input type="checkbox"></td></tr>
-              <tr><td style="padding: 5px; border: 1px solid black;">4500</td><td style="padding: 5px; border: 1px solid black;"><input type="checkbox"></td></tr>
-              <tr><td style="padding: 5px; border: 1px solid black;">5000</td><td style="padding: 5px; border: 1px solid black;"><input type="checkbox"></td></tr>
-              <tr><td style="padding: 5px; border: 1px solid black;">20000</td><td style="padding: 5px; border: 1px solid black;"><input type="checkbox"></td></tr>
-              <tr><td style="padding: 5px; border: 1px solid black;">Otro (especificar)</td><td style="padding: 5px; border: 1px solid black;"><input type="text" placeholder="Escriba aquí el riesgo"></td></tr>
+              {''.join(f'<tr><td style="padding:5px; border:1px solid black;">{r}</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>' for r in [0,500,1000,1500,2000,2500,3000,3500,4000,4500,5000,20000])}
+              <tr><td style="padding:5px; border:1px solid black;">Otro (especificar)</td><td style="padding:5px; border:1px solid black;"><input type="text" placeholder="Escriba aquí el riesgo"></td></tr>
             </tbody>
           </table>
         </td>
+
+        <!-- Tabla de Sector -->
         <td style="vertical-align: top;">
-          <!-- Tabla de sector -->
           <table style="border-collapse: collapse; border: 1px solid black;">
             <thead>
               <tr><th style="padding: 5px; border: 1px solid black;">Sector</th><th style="padding: 5px; border: 1px solid black;">Selección</th></tr>
             </thead>
             <tbody>
-              <tr><td style="padding: 5px; border: 1px solid black;">Agricultura</td><td style="padding: 5px; border: 1px solid black;"><input type="checkbox"></td></tr>
-              <tr><td style="padding: 5px; border: 1px solid black;">Aguas</td><td style="padding: 5px; border: 1px solid black;"><input type="checkbox"></td></tr>
-              <tr><td style="padding: 5px; border: 1px solid black;">Alimentación</td><td style="padding: 5px; border: 1px solid black;"><input type="checkbox"></td></tr>
-              <tr><td style="padding: 5px; border: 1px solid black;">Distribuidor</td><td style="padding: 5px; border: 1px solid black;"><input type="checkbox"></td></tr>
-              <tr><td style="padding: 5px; border: 1px solid black;">Ganadería</td><td style="padding: 5px; border: 1px solid black;"><input type="checkbox"></td></tr>
-              <tr><td style="padding: 5px; border: 1px solid black;">Industrial</td><td style="padding: 5px; border: 1px solid black;"><input type="checkbox"></td></tr>
-              <tr><td style="padding: 5px; border: 1px solid black;">Piscinas</td><td style="padding: 5px; border: 1px solid black;"><input type="checkbox"></td></tr>
-              <tr><td style="padding: 5px; border: 1px solid black;">Sector0</td><td style="padding: 5px; border: 1px solid black;"><input type="checkbox"></td></tr>
+              {''.join(f'<tr><td style="padding:5px; border:1px solid black;">{s}</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>' for s in ["Agricultura","Aguas","Alimentación","Distribuidor","Ganadería","Industrial","Piscinas","Sector0"])}
+            </tbody>
+          </table>
+        </td>
+
+        <!-- Tabla de Subsectores -->
+        <td style="vertical-align: top;">
+          <table style="border-collapse: collapse; border: 1px solid black;">
+            <thead>
+              <tr><th colspan="2" style="padding: 5px; border: 1px solid black;">Subsectores</th></tr>
+            </thead>
+            <tbody>
+              <tr><td colspan="2" style="font-weight:bold; padding:5px;">Agricultura (AG)</td></tr>
+              <tr><td colspan="2" style="padding:5px;"><input type="checkbox"> Agricultura</td></tr>
+
+              <tr><td colspan="2" style="font-weight:bold; padding:5px;">Aguas (A)</td></tr>
+              <tr><td colspan="2" style="padding:5px;"><input type="checkbox"> Industrial</td></tr>
+              <tr><td colspan="2" style="padding:5px;"><input type="checkbox"> Potable</td></tr>
+
+              <tr><td colspan="2" style="font-weight:bold; padding:5px;">Alimentación (AL)</td></tr>
+              <tr><td colspan="2" style="padding:5px;"><input type="checkbox"> Aceituna</td></tr>
+              <tr><td colspan="2" style="padding:5px;"><input type="checkbox"> Aditivos, aromas, azúcares y salsas</td></tr>
+
+              <tr><td colspan="2" style="font-weight:bold; padding:5px;">Distribuidor (D)</td></tr>
+              <tr><td colspan="2" style="padding:5px;"><input type="checkbox"> Agricultura</td></tr>
+              <tr><td colspan="2" style="padding:5px;"><input type="checkbox"> Aguas</td></tr>
+
+              <tr><td colspan="2" style="font-weight:bold; padding:5px;">Ganadería (G)</td></tr>
+              <tr><td colspan="2" style="padding:5px;"><input type="checkbox"> Explotaciones Ganaderas</td></tr>
+              <tr><td colspan="2" style="padding:5px;"><input type="checkbox"> Fabricación Alimentos FEED</td></tr>
+
+              <tr><td colspan="2" style="font-weight:bold; padding:5px;">Industrial (I)</td></tr>
+              <tr><td colspan="2" style="padding:5px;"><input type="checkbox"> Biodiésel</td></tr>
+              <tr><td colspan="2" style="padding:5px;"><input type="checkbox"> Cemento, yeso y hormigón</td></tr>
+              <tr><td colspan="2" style="padding:5px;"><input type="checkbox"> Fertilizantes y agroquímicos</td></tr>
+              <tr><td colspan="2" style="padding:5px;"><input type="checkbox"> Madera</td></tr>
+              <tr><td colspan="2" style="padding:5px;"><input type="checkbox"> Química básica</td></tr>
+              <tr><td colspan="2" style="padding:5px;"><input type="checkbox"> Química fina / formulados</td></tr>
+
+              <tr><td colspan="2" style="font-weight:bold; padding:5px;">Piscinas (P)</td></tr>
+              <tr><td colspan="2" style="padding:5px;"><input type="checkbox"> Privada</td></tr>
+              <tr><td colspan="2" style="padding:5px;"><input type="checkbox"> Pública</td></tr>
+
+              <tr><td colspan="2" style="font-weight:bold; padding:5px;">Sector 0 (S)</td></tr>
+              <tr><td colspan="2" style="padding:5px;"><input type="checkbox"> Sector 0</td></tr>
             </tbody>
           </table>
         </td>
@@ -193,6 +220,7 @@ def enviar_correo_con_dos_adjuntos(archivo1, archivo2, correo_comercial=None, no
     </body>
     </html>
     """
+
 
     msg.attach(MIMEText(body, 'html'))
 
