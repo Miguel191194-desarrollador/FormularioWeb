@@ -144,7 +144,7 @@ def enviar_correo_con_dos_adjuntos(archivo1, archivo2, correo_comercial=None, no
 
     <table style="width: 100%; border-collapse: collapse;">
       <tr>
-        <td style="vertical-align: top; padding-right: 15px;">
+        <td style="vertical-align: top; padding-right: 5px;">
           <!-- Tabla de riesgo -->
           <table style="border-collapse: collapse; border: 1px solid black;">
             <thead>
