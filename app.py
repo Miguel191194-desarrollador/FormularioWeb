@@ -140,11 +140,11 @@ def enviar_correo_con_dos_adjuntos(archivo1, archivo2, correo_comercial=None, no
 
     <p><strong><span style='color:red;'>⚠️ IMPORTANTE: REENVIAR ESTE CORREO A MIGUEL INDICANDO EL RIESGO A SOLICITAR PARA ESTE CLIENTE, SECTOR Y SUBSECTOR.</span></strong></p>
 
-    <p><strong>Seleccione el riesgo y el sector marcando la casilla correspondiente:</strong></p>
+    <p><strong>Seleccione el riesgo, sector y subsector marcando la casilla correspondiente:</strong></p>
 
     <table style="width: 100%; border-collapse: collapse;">
       <tr>
-        <td style="vertical-align: top; padding-right: 40px;">
+        <td style="vertical-align: top; padding-right: 15px;">
           <!-- Tabla de riesgo -->
           <table style="border-collapse: collapse; border: 1px solid black;">
             <thead>
