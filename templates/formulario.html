@@ -147,17 +147,16 @@
         function actualizarCorreoComercial() {
             const comercialSelect = document.getElementById('comercial');
             const correoComercialInput = document.getElementById('correo_comercial');
-            const comerciales = {
-                'José Maria': 'jmmmorcillo@dimensasl.com',
-                'Francisco': 'franciscogarcia@dimensasl.com',
-                'Carmen': 'carmengutierrez@dimensasl.com',
-                'Damian': 'damianv@dimensasl.com',
-                'Mostrador': 'tesoreria@dimensasl.com',
-                'José Antonio': 'jamm@dimensasl.com',
-                'Comercial no asignado': 'tesoreria@dimensasl.com'
-                'Comercial Adblue': 'comercialdimensa@gmail.com'
-
-            };
+        const comerciales = {
+    'José Maria': 'jmmmorcillo@dimensasl.com',
+    'Francisco': 'franciscogarcia@dimensasl.com',
+    'Carmen': 'carmengutierrez@dimensasl.com',
+    'Damian': 'damianv@dimensasl.com',
+    'Mostrador': 'tesoreria@dimensasl.com',
+    'José Antonio': 'jamm@dimensasl.com',
+    'Comercial no asignado': 'tesoreria@dimensasl.com',
+    'Comercial Adblue': 'comercialdimensa@gmail.com'
+};
             correoComercialInput.value = comerciales[comercialSelect.value] || '';
         }
 
