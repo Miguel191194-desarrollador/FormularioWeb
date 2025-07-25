@@ -63,13 +63,13 @@ def guardar():
     archivo_excel_plantas = crear_excel_plantas_en_memoria(data)
 
     # --- Enviar correo en segundo plano ---
+# --- Enviar correo en segundo plano ---
 threading.Thread(
     target=enviar_correo_con_adjuntos,
     args=(archivo_excel_cliente, archivo_excel_plantas, data.get('correo_comercial'), data.get('nombre'))
 ).start()
 
-
-    return render_template("gracias.html")
+return render_template("gracias.html")
 
 
 
