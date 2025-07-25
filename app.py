@@ -4,11 +4,10 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
 from email.mime.text import MIMEText
 from email import encoders
-from datetime import datetime
 from openpyxl import load_workbook
-import os
 import io
 import threading
+import base64
 
 app = Flask(__name__)
 app.secret_key = 'supersecretkey'
@@ -16,17 +15,26 @@ app.secret_key = 'supersecretkey'
 EMAIL_ADDRESS = 'migueladr191194@gmail.com'
 EMAIL_PASSWORD = 'zvup wjjv bwas tebs'
 
+
+# ------------------- RUTAS -------------------
+
 @app.route('/', methods=['GET'])
 def formulario():
+    session.permanent = True
     return render_template('formulario.html')
+
 
 @app.route('/plantas', methods=['POST', 'GET'])
 def plantas():
+    session.permanent = True
     if request.method == 'GET':
         flash('Por favor, rellena primero el formulario de cliente.')
         return redirect('/')
+    
+    # Guardamos todos los datos del formulario inicial
     session['form_data'] = request.form.to_dict()
     return render_template('plantas.html')
+
 
 @app.route('/guardar', methods=['POST'])
 def guardar():
@@ -34,41 +42,32 @@ def guardar():
     plantas_data = request.form.to_dict()
     data = {**form_data, **plantas_data}
 
-
-    # --- GUARDAR LA FIRMA DIGITAL COMO IMAGEN ---
-
+    # --- Capturar la firma en memoria ---
     firma_base64 = data.get('firma_cliente')
-    firma_path = None
+    firma_bytes = None
     if firma_base64:
-        import base64
-        firma_data = firma_base64.split(",")[1]  # Quita el 'data:image/png;base64,'
-        firma_path = f"static/firma_{data.get('nombre','cliente')}.png"
-        with open(firma_path, "wb") as f:
-            f.write(base64.b64decode(firma_data))
+        firma_bytes = base64.b64decode(firma_base64.split(",")[1])
 
-
-
-
-    
-    hay_una_planta = False
-    for i in range(1, 11):
-        if plantas_data.get(f'planta_nombre_{i}'):
-            hay_una_planta = True
-            break
-
+    # --- Validar que hay al menos una planta ---
+    hay_una_planta = any(plantas_data.get(f'planta_nombre_{i}') for i in range(1, 11))
     if not hay_una_planta:
         flash('⚠️ Debes rellenar al menos los datos de una planta antes de continuar.')
         return render_template('plantas.html')
 
+    # --- Crear los Excels en memoria ---
     archivo_excel_cliente = crear_excel_en_memoria(data)
     archivo_excel_plantas = crear_excel_plantas_en_memoria(data)
 
+    # --- Enviar correo en segundo plano ---
     threading.Thread(
-        target=enviar_correo_con_dos_adjuntos,
-        args=(archivo_excel_cliente, archivo_excel_plantas, data.get('correo_comercial'), data.get('nombre'))
+        target=enviar_correo_con_adjuntos,
+        args=(archivo_excel_cliente, archivo_excel_plantas, firma_bytes, data.get('correo_comercial'), data.get('nombre'))
     ).start()
 
     return render_template("gracias.html")
+
+
+# ------------------- FUNCIONES AUXILIARES -------------------
 
 def crear_excel_en_memoria(data):
     wb = load_workbook("Copia de Alta de Cliente.xlsx")
@@ -110,6 +109,7 @@ def crear_excel_en_memoria(data):
     excel_mem.seek(0)
     return excel_mem
 
+
 def crear_excel_plantas_en_memoria(data):
     wb = load_workbook("Copia de Alta de Plantas.xlsx")
     ws = wb["Plantas"]
@@ -135,7 +135,8 @@ def crear_excel_plantas_en_memoria(data):
     excel_mem.seek(0)
     return excel_mem
 
-def enviar_correo_con_dos_adjuntos(archivo1, archivo2, correo_comercial=None, nombre_cliente="cliente"):
+
+def enviar_correo_con_adjuntos(archivo1, archivo2, firma_bytes=None, correo_comercial=None, nombre_cliente="cliente"):
     msg = MIMEMultipart()
     msg['From'] = EMAIL_ADDRESS
     destinatarios = ['tesoreria@dimensasl.com']
@@ -144,6 +145,7 @@ def enviar_correo_con_dos_adjuntos(archivo1, archivo2, correo_comercial=None, no
     msg['To'] = ', '.join(destinatarios)
     msg['Subject'] = f'Alta de cliente y plantas: {nombre_cliente}'
 
+    # ------------------- CUERPO COMPLETO DEL CORREO -------------------
     body = f"""
     <html>
     <body>
@@ -275,43 +277,46 @@ type="checkbox"></td></tr>
     </body>
     </html>
     """
-
     msg.attach(MIMEText(body, 'html'))
 
+    # ------------------- ADJUNTOS -------------------
+    # Excel Cliente
     part1 = MIMEBase('application', 'vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     part1.set_payload(archivo1.read())
     encoders.encode_base64(part1)
-    part1.add_header('Content-Disposition', f'attachment; filename=\"Alta Cliente - {nombre_cliente}.xlsx\"')
+    part1.add_header('Content-Disposition', f'attachment; filename="Alta Cliente - {nombre_cliente}.xlsx"')
     msg.attach(part1)
 
+    # Excel Plantas
     part2 = MIMEBase('application', 'vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     part2.set_payload(archivo2.read())
     encoders.encode_base64(part2)
-    part2.add_header('Content-Disposition', f'attachment; filename=\"Alta Plantas - {nombre_cliente}.xlsx\"')
+    part2.add_header('Content-Disposition', f'attachment; filename="Alta Plantas - {nombre_cliente}.xlsx"')
     msg.attach(part2)
 
-    # Adjuntar la firma si existe
-    firma_path = f"static/firma_{nombre_cliente}.png"
-    if os.path.exists(firma_path):
-        with open(firma_path, "rb") as f:
-            part3 = MIMEBase('application', 'octet-stream')
-            part3.set_payload(f.read())
-            encoders.encode_base64(part3)
-            part3.add_header('Content-Disposition', f'attachment; filename="Firma - {nombre_cliente}.png"')
-            msg.attach(part3)
+    # Firma adjunta (si existe)
+    if firma_bytes:
+        part3 = MIMEBase('application', 'octet-stream')
+        part3.set_payload(firma_bytes)
+        encoders.encode_base64(part3)
+        part3.add_header('Content-Disposition', f'attachment; filename="Firma - {nombre_cliente}.png"')
+        msg.attach(part3)
 
-
-    
     try:
         with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
             server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
             server.send_message(msg)
-        print('✅ Correo con ambos archivos enviado correctamente.')
+        print('✅ Correo enviado correctamente con los adjuntos.')
     except Exception as e:
         print(f'❌ Error al enviar correo: {e}')
 
+
+# ------------------- EJECUTAR -------------------
+
 if __name__ == '__main__':
     app.run(debug=True)
+
+
 
 
 
