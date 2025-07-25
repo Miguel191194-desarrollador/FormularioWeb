@@ -332,6 +332,50 @@
                     </div>
                 </div>
 
+                <!-- Cuadro de firma -->
+<div style="margin-top: 30px;">
+    <label>Firma de autorización<span class="required">*</span></label>
+    <canvas id="firma" width="400" height="150" style="border:1px solid #ccc; display:block; margin-top:10px;"></canvas>
+    <button type="button" onclick="borrarFirma()" style="margin-top:5px;">Borrar firma</button>
+    <input type="hidden" name="firma_cliente" id="firma_cliente" required>
+</div>
+
+<script>
+    const canvas = document.getElementById('firma');
+    const ctx = canvas.getContext('2d');
+    let dibujando = false;
+
+    canvas.addEventListener('mousedown', (e) => {
+        dibujando = true;
+        ctx.beginPath();
+        ctx.moveTo(e.offsetX, e.offsetY);
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+        if (dibujando) {
+            ctx.lineTo(e.offsetX, e.offsetY);
+            ctx.stroke();
+        }
+    });
+
+    canvas.addEventListener('mouseup', () => {
+        dibujando = false;
+        document.getElementById('firma_cliente').value = canvas.toDataURL('image/png');
+    });
+
+    function borrarFirma() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        document.getElementById('firma_cliente').value = "";
+    }
+
+    // Si no firma, bloqueamos el envío
+    document.querySelector('form').addEventListener('submit', function(e) {
+        if (!document.getElementById('firma_cliente').value) {
+            alert("Debe firmar en el recuadro antes de enviar el formulario.");
+            e.preventDefault();
+        }
+    });
+</script>
 
             <div class="section">
                 <div class="section-title"><i class="fas fa-shopping-cart"></i> DTO. DE COMPRAS</div>
