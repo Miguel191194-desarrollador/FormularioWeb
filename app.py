@@ -11,7 +11,6 @@ import base64
 from openpyxl.drawing.image import Image as ExcelImage
 import tempfile
 
-
 app = Flask(__name__)
 app.secret_key = 'supersecretkey'
 
@@ -35,6 +34,8 @@ def plantas():
     # Pasamos los datos del cliente al html de plantas
     datos_cliente = request.form.to_dict()
     return render_template('plantas.html', datos_cliente=datos_cliente)
+
+
 
 
 @app.route('/guardar', methods=['POST'])
@@ -63,13 +64,13 @@ def guardar():
     archivo_excel_plantas = crear_excel_plantas_en_memoria(data)
 
     # --- Enviar correo en segundo plano ---
-# --- Enviar correo en segundo plano ---
-threading.Thread(
-    target=enviar_correo_con_adjuntos,
-    args=(archivo_excel_cliente, archivo_excel_plantas, data.get('correo_comercial'), data.get('nombre'))
-).start()
+    threading.Thread(
+        target=enviar_correo_con_adjuntos,
+        args=(archivo_excel_cliente, archivo_excel_plantas, data.get('correo_comercial'), data.get('nombre'))
+    ).start()
 
-return render_template("gracias.html")
+    return render_template("gracias.html")
+
 
 
 
@@ -111,14 +112,14 @@ def crear_excel_en_memoria(data, firma_bytes=None):
     ws["B47"] = data.get("sepa_provincia")
     ws["B48"] = data.get("iban_completo")
 
-    # 👉 Ahora insertamos la firma en B49 si existe
+    # Insertar la firma en B49 si existe
     if firma_bytes:
         with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp:
             tmp.write(firma_bytes)
             tmp_path = tmp.name
 
         img = ExcelImage(tmp_path)
-        img.width = 200  # Ajusta tamaño si lo necesitas
+        img.width = 200
         img.height = 60
         ws.add_image(img, "B49")
 
@@ -126,6 +127,7 @@ def crear_excel_en_memoria(data, firma_bytes=None):
     wb.save(excel_mem)
     excel_mem.seek(0)
     return excel_mem
+
 
 
 def crear_excel_plantas_en_memoria(data):
