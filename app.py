@@ -8,6 +8,9 @@ from openpyxl import load_workbook
 import io
 import threading
 import base64
+from openpyxl.drawing.image import Image as ExcelImage
+import tempfile
+
 
 app = Flask(__name__)
 app.secret_key = 'supersecretkey'
@@ -36,8 +39,12 @@ def plantas():
 
 @app.route('/guardar', methods=['POST'])
 def guardar():
-    # Aquí recibimos los datos del cliente + plantas juntos
-    data = request.form.to_dict()
+    # Recuperamos los datos guardados de la primera página (cliente)
+    form_data = request.form.to_dict()
+
+    # Combinamos con los datos que vienen de la página de plantas
+    plantas_data = request.form.to_dict()
+    data = {**form_data, **plantas_data}
 
     # --- Capturar la firma ---
     firma_base64 = data.get('firma_cliente')
@@ -46,10 +53,10 @@ def guardar():
         firma_bytes = base64.b64decode(firma_base64.split(",")[1])
 
     # --- Validar que hay al menos una planta ---
-    hay_una_planta = any(data.get(f'planta_nombre_{i}') for i in range(1, 11))
+    hay_una_planta = any(plantas_data.get(f'planta_nombre_{i}') for i in range(1, 11))
     if not hay_una_planta:
         flash('⚠️ Debes rellenar al menos los datos de una planta antes de continuar.')
-        return render_template('plantas.html', datos_cliente=data)
+        return render_template('plantas.html', datos_cliente=form_data)
 
     # --- Crear los Excels en memoria ---
     archivo_excel_cliente = crear_excel_en_memoria(data, firma_bytes)
@@ -58,18 +65,20 @@ def guardar():
     # --- Enviar correo en segundo plano ---
     threading.Thread(
         target=enviar_correo_con_adjuntos,
-        args=(archivo_excel_cliente, archivo_excel_plantas, data.get('correo_comercial'), data.get('nombre'))
+        args=(archivo_excel_cliente, archivo_excel_plantas, None, data.get('correo_comercial'), data.get('nombre'))
     ).start()
 
     return render_template("gracias.html")
 
 
+
 # ------------------- FUNCIONES AUXILIARES -------------------
 
-def crear_excel_en_memoria(data, firma_bytes):
+def crear_excel_en_memoria(data, firma_bytes=None):
     wb = load_workbook("Copia de Alta de Cliente.xlsx")
     ws = wb["FICHA CLIENTE"]
 
+    # Rellenamos las celdas con los datos
     ws["B4"] = data.get("nombre")
     ws["B5"] = data.get("nif")
     ws["D5"] = data.get("telefono_general")
@@ -101,9 +110,16 @@ def crear_excel_en_memoria(data, firma_bytes):
     ws["B47"] = data.get("sepa_provincia")
     ws["B48"] = data.get("iban_completo")
 
-    # Guardar la firma en la celda B49 (en base64)
+    # 👉 Ahora insertamos la firma en B49 si existe
     if firma_bytes:
-        ws["B49"] = "Firma adjunta en correo"
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp:
+            tmp.write(firma_bytes)
+            tmp_path = tmp.name
+
+        img = ExcelImage(tmp_path)
+        img.width = 200  # Ajusta tamaño si lo necesitas
+        img.height = 60
+        ws.add_image(img, "B49")
 
     excel_mem = io.BytesIO()
     wb.save(excel_mem)
@@ -145,6 +161,51 @@ def enviar_correo_con_adjuntos(archivo1, archivo2, correo_comercial=None, nombre
         destinatarios.append(correo_comercial)
     msg['To'] = ', '.join(destinatarios)
     msg['Subject'] = f'Alta de cliente y plantas: {nombre_cliente}'
+
+    # ------------------- CUERPO COMPLETO DEL CORREO -------------------
+    body = f"""
+    <html>
+    <body>
+    <p>Buenas,</p>
+    <p>Se ha completado el alta de un nuevo cliente en el sistema: <strong>{nombre_cliente}</strong>.</p>
+    <p>Adjuntamos en este correo dos archivos Excel:<br>
+    - Uno con los datos generales del cliente.<br>
+    - Otro con la información detallada de sus plantas.</p>
+    <p><strong><span style='color:red;'>⚠️ IMPORTANTE: REENVIAR ESTE CORREO A MIGUEL INDICANDO EL RIESGO A SOLICITAR PARA ESTE CLIENTE, SECTOR Y SUBSECTOR.</span></strong></p>
+    </body>
+    </html>
+    """
+    msg.attach(MIMEText(body, 'html'))
+
+    # ------------------- ADJUNTOS -------------------
+    # Excel Cliente
+    part1 = MIMEBase('application', 'vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    part1.set_payload(archivo1.read())
+    encoders.encode_base64(part1)
+    part1.add_header('Content-Disposition', f'attachment; filename="Alta Cliente - {nombre_cliente}.xlsx"')
+    msg.attach(part1)
+
+    # Excel Plantas
+    part2 = MIMEBase('application', 'vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    part2.set_payload(archivo2.read())
+    encoders.encode_base64(part2)
+    part2.add_header('Content-Disposition', f'attachment; filename="Alta Plantas - {nombre_cliente}.xlsx"')
+    msg.attach(part2)
+
+    try:
+        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
+            server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
+            server.send_message(msg)
+        print('✅ Correo enviado correctamente con los adjuntos.')
+    except Exception as e:
+        print(f'❌ Error al enviar correo: {e}')
+
+
+# ------------------- EJECUTAR -------------------
+
+if __name__ == '__main__':
+    app.run(debug=True)
+
 
     # ------------------- CUERPO COMPLETO DEL CORREO -------------------
     body = f"""
