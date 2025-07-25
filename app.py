@@ -1,11 +1,10 @@
-from flask import Flask, render_template, request, redirect, session, flash
+from flask import Flask, render_template, request, redirect, flash
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
 from email.mime.text import MIMEText
 from email import encoders
 from openpyxl import load_workbook
-from openpyxl.drawing.image import Image as ExcelImage
 import io
 import threading
 import base64
@@ -21,36 +20,39 @@ EMAIL_PASSWORD = 'zvup wjjv bwas tebs'
 
 @app.route('/', methods=['GET'])
 def formulario():
-    session.permanent = True
     return render_template('formulario.html')
 
 
 @app.route('/plantas', methods=['POST', 'GET'])
 def plantas():
-    session.permanent = True
     if request.method == 'GET':
         flash('Por favor, rellena primero el formulario de cliente.')
         return redirect('/')
     
-    # Guardamos todos los datos del formulario inicial
-    session['form_data'] = request.form.to_dict()
-    return render_template('plantas.html')
+    # Pasamos los datos del cliente al html de plantas
+    datos_cliente = request.form.to_dict()
+    return render_template('plantas.html', datos_cliente=datos_cliente)
 
 
 @app.route('/guardar', methods=['POST'])
 def guardar():
-    form_data = session.get('form_data', {})
-    plantas_data = request.form.to_dict()
-    data = {**form_data, **plantas_data}
+    # Aquí recibimos los datos del cliente + plantas juntos
+    data = request.form.to_dict()
+
+    # --- Capturar la firma ---
+    firma_base64 = data.get('firma_cliente')
+    firma_bytes = None
+    if firma_base64:
+        firma_bytes = base64.b64decode(firma_base64.split(",")[1])
 
     # --- Validar que hay al menos una planta ---
-    hay_una_planta = any(plantas_data.get(f'planta_nombre_{i}') for i in range(1, 11))
+    hay_una_planta = any(data.get(f'planta_nombre_{i}') for i in range(1, 11))
     if not hay_una_planta:
         flash('⚠️ Debes rellenar al menos los datos de una planta antes de continuar.')
-        return render_template('plantas.html')
+        return render_template('plantas.html', datos_cliente=data)
 
     # --- Crear los Excels en memoria ---
-    archivo_excel_cliente = crear_excel_en_memoria(data)
+    archivo_excel_cliente = crear_excel_en_memoria(data, firma_bytes)
     archivo_excel_plantas = crear_excel_plantas_en_memoria(data)
 
     # --- Enviar correo en segundo plano ---
@@ -64,11 +66,10 @@ def guardar():
 
 # ------------------- FUNCIONES AUXILIARES -------------------
 
-def crear_excel_en_memoria(data):
+def crear_excel_en_memoria(data, firma_bytes):
     wb = load_workbook("Copia de Alta de Cliente.xlsx")
     ws = wb["FICHA CLIENTE"]
 
-    # Datos principales
     ws["B4"] = data.get("nombre")
     ws["B5"] = data.get("nif")
     ws["D5"] = data.get("telefono_general")
@@ -100,14 +101,9 @@ def crear_excel_en_memoria(data):
     ws["B47"] = data.get("sepa_provincia")
     ws["B48"] = data.get("iban_completo")
 
-    # Firma en B49
-    firma_base64 = data.get("firma_cliente")
-    if firma_base64:
-        firma_data = base64.b64decode(firma_base64.split(",")[1])
-        firma_img = io.BytesIO(firma_data)
-        img = ExcelImage(firma_img)
-        img.width, img.height = 150, 60
-        ws.add_image(img, "B49")
+    # Guardar la firma en la celda B49 (en base64)
+    if firma_bytes:
+        ws["B49"] = "Firma adjunta en correo"
 
     excel_mem = io.BytesIO()
     wb.save(excel_mem)
@@ -150,7 +146,7 @@ def enviar_correo_con_adjuntos(archivo1, archivo2, correo_comercial=None, nombre
     msg['To'] = ', '.join(destinatarios)
     msg['Subject'] = f'Alta de cliente y plantas: {nombre_cliente}'
 
-    # ------------------- CUERPO DEL CORREO -------------------
+    # ------------------- CUERPO COMPLETO DEL CORREO -------------------
     body = f"""
     <html>
     <body>
@@ -158,7 +154,7 @@ def enviar_correo_con_adjuntos(archivo1, archivo2, correo_comercial=None, nombre
     <p>Se ha completado el alta de un nuevo cliente en el sistema: <strong>{nombre_cliente}</strong>.</p>
 
     <p>Adjuntamos en este correo dos archivos Excel:<br>
-    - Uno con los datos generales del cliente (firma incluida en B49).<br>
+    - Uno con los datos generales del cliente.<br>
     - Otro con la información detallada de sus plantas.</p>
 
     <p><strong><span style='color:red;'>⚠️ IMPORTANTE: REENVIAR ESTE CORREO A MIGUEL INDICANDO EL RIESGO A SOLICITAR PARA ESTE CLIENTE, SECTOR Y SUBSECTOR.</span></strong></p>
@@ -170,22 +166,22 @@ def enviar_correo_con_adjuntos(archivo1, archivo2, correo_comercial=None, nombre
             <td style="vertical-align: top;">
                 <table style="border-collapse: collapse; border: 1px solid black;">
                     <thead>
-                        <tr><th>Riesgo</th><th>Selección</th></tr>
+                        <tr><th style="padding: 5px; border: 1px solid black;">Riesgo</th><th style="padding: 5px; border: 1px solid black;">Selección</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td>0</td><td><input type="checkbox"></td></tr>
-                        <tr><td>500</td><td><input type="checkbox"></td></tr>
-                        <tr><td>1000</td><td><input type="checkbox"></td></tr>
-                        <tr><td>1500</td><td><input type="checkbox"></td></tr>
-                        <tr><td>2000</td><td><input type="checkbox"></td></tr>
-                        <tr><td>2500</td><td><input type="checkbox"></td></tr>
-                        <tr><td>3000</td><td><input type="checkbox"></td></tr>
-                        <tr><td>3500</td><td><input type="checkbox"></td></tr>
-                        <tr><td>4000</td><td><input type="checkbox"></td></tr>
-                        <tr><td>4500</td><td><input type="checkbox"></td></tr>
-                        <tr><td>5000</td><td><input type="checkbox"></td></tr>
-                        <tr><td>20000</td><td><input type="checkbox"></td></tr>
-                        <tr><td>Otro (especificar)</td><td><input type="text"></td></tr>
+                        <tr><td style="padding:5px; border:1px solid black;">0</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
+                        <tr><td style="padding:5px; border:1px solid black;">500</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
+                        <tr><td style="padding:5px; border:1px solid black;">1000</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
+                        <tr><td style="padding:5px; border:1px solid black;">1500</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
+                        <tr><td style="padding:5px; border:1px solid black;">2000</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
+                        <tr><td style="padding:5px; border:1px solid black;">2500</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
+                        <tr><td style="padding:5px; border:1px solid black;">3000</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
+                        <tr><td style="padding:5px; border:1px solid black;">3500</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
+                        <tr><td style="padding:5px; border:1px solid black;">4000</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
+                        <tr><td style="padding:5px; border:1px solid black;">4500</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
+                        <tr><td style="padding:5px; border:1px solid black;">5000</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
+                        <tr><td style="padding:5px; border:1px solid black;">20000</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
+                        <tr><td style="padding:5px; border:1px solid black;">Otro (especificar)</td><td style="padding:5px; border:1px solid black;"><input type="text" placeholder="Escriba aquí el riesgo"></td></tr>
                     </tbody>
                 </table>
             </td>
@@ -193,17 +189,17 @@ def enviar_correo_con_adjuntos(archivo1, archivo2, correo_comercial=None, nombre
             <td style="vertical-align: top;">
                 <table style="border-collapse: collapse; border: 1px solid black;">
                     <thead>
-                        <tr><th>Sector</th><th>Selección</th></tr>
+                        <tr><th style="padding: 5px; border: 1px solid black;">Sector</th><th style="padding: 5px; border: 1px solid black;">Selección</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td>Agricultura</td><td><input type="checkbox"></td></tr>
-                        <tr><td>Aguas</td><td><input type="checkbox"></td></tr>
-                        <tr><td>Alimentación</td><td><input type="checkbox"></td></tr>
-                        <tr><td>Distribuidor</td><td><input type="checkbox"></td></tr>
-                        <tr><td>Ganadería</td><td><input type="checkbox"></td></tr>
-                        <tr><td>Industrial</td><td><input type="checkbox"></td></tr>
-                        <tr><td>Piscinas</td><td><input type="checkbox"></td></tr>
-                        <tr><td>Sector0</td><td><input type="checkbox"></td></tr>
+                        <tr><td style="padding:5px; border:1px solid black;">Agricultura</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
+                        <tr><td style="padding:5px; border:1px solid black;">Aguas</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
+                        <tr><td style="padding:5px; border:1px solid black;">Alimentación</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
+                        <tr><td style="padding:5px; border:1px solid black;">Distribuidor</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
+                        <tr><td style="padding:5px; border:1px solid black;">Ganadería</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
+                        <tr><td style="padding:5px; border:1px solid black;">Industrial</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
+                        <tr><td style="padding:5px; border:1px solid black;">Piscinas</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
+                        <tr><td style="padding:5px; border:1px solid black;">Sector0</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
                     </tbody>
                 </table>
             </td>
@@ -211,14 +207,65 @@ def enviar_correo_con_adjuntos(archivo1, archivo2, correo_comercial=None, nombre
             <td style="vertical-align: top;">
                 <table style="border-collapse: collapse; border: 1px solid black;">
                     <thead>
-                        <tr><th>Subsector</th><th>Selección</th></tr>
+                        <tr><th colspan="2" style="padding: 5px; border: 1px solid black;">Subsectores</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td>(AG) Agricultura</td><td><input type="checkbox"></td></tr>
-                        <tr><td>(AL) Alimentación</td><td><input type="checkbox"></td></tr>
-                        <tr><td>(I) Industrial</td><td><input type="checkbox"></td></tr>
-                        <tr><td>(P) Piscinas</td><td><input type="checkbox"></td></tr>
-                        <tr><td>(S) Sector0</td><td><input type="checkbox"></td></tr>
+                        <tr><th style="padding: 5px; border: 1px solid black;">Agricultura</th><th style="padding: 5px; border: 1px solid black;">Selección</th></tr>
+                        <tr><td style="padding:5px; border:1px solid black;">(AG)Agricultura</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
+                        <tr><th style="padding: 5px; border: 1px solid black;">Aguas</th><th style="padding: 5px; border: 1px solid black;">Selección</th></tr>
+                        <tr><td style="padding:5px; border:1px solid black;">(A)Industrial</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
+                        <tr><td style="padding:5px; border:1px solid black;">(A)Potable</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
+                        <tr><td style="padding:5px; border:1px solid black;">(A)Residual</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
+                        <tr><th style="padding: 5px; border: 1px solid black;">Alimentación</th><th style="padding: 5px; border: 1px solid black;">Selección</th></tr>
+                        <tr><td style="padding:5px; border:1px solid black;">(AL)Aceituna</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
+                        <tr><td style="padding:5px; border:1px solid black;">(AL)Aditivos, aromas, azucares y salsas</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
+                        <tr><td style="padding:5px; border:1px solid black;">(AL)Bebidas</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
+                        <tr><td style="padding:5px; border:1px solid black;">(AL)Cárnicas</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
+                        <tr><td style="padding:5px; border:1px solid black;">(AL)Chocolate, café y confiteria</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
+                        <tr><td style="padding:5px; border:1px solid black;">(AL)Conserva - procesado frutas, hortalizas y cereales</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
+                        <tr><td style="padding:5px; border:1px solid black;">(AL)Grasas animales y vegetales</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
+                        <tr><td style="padding:5px; border:1px solid black;">(AL)Lácteos</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
+                        <tr><td style="padding:5px; border:1px solid black;">(AL)Panadería,pasta,harina,galletas, y pasteleria</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
+                        <tr><td style="padding:5px; border:1px solid black;">(AL)Pescado</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
+                        <tr><td style="padding:5px; border:1px solid black;">(AL)Vino</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
+                        <tr><th style="padding: 5px; border: 1px solid black;">Distribuidor</th><th style="padding: 5px; border: 1px solid black;">Selección</th></tr>
+                        <tr><td style="padding:5px; border:1px solid black;">(D)Agricultura</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
+                        <tr><td style="padding:5px; border:1px solid black;">(D)Aguas</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
+                        <tr><td style="padding:5px; border:1px solid black;">(D)Alimentación</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
+                        <tr><td style="padding:5px; border:1px solid black;">(D)Ganadería</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
+                        <tr><td style="padding:5px; border:1px solid black;">(D)Industrial</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
+                        <tr><td style="padding:5px; border:1px solid black;">(D)Piscinas</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
+                        <tr><th style="padding: 5px; border: 1px solid black;">Ganadería</th><th style="padding: 5px; border: 1px solid black;">Selección</th></tr>
+                        <tr><td style="padding:5px; border:1px solid black;">(G)Explotaciones Ganaderas</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
+                        <tr><td style="padding:5px; border:1px solid black;">(G)Fabricación Alimentos FEED</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
+                        <tr><th style="padding: 5px; border: 1px solid black;">Industrial</th><th style="padding: 5px; border: 1px solid black;">Selección</th></tr>
+                        <tr><td style="padding:5px; border:1px solid black;">(I)Biodiésel</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
+                        <tr><td style="padding:5px; border:1px solid black;">(I)Cemento,yeso y hormigón</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
+                        <tr><td style="padding:5px; border:1px solid black;">(I)Comercio</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
+                        <tr><td style="padding:5px; border:1px solid black;">(I)Construcción</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
+                        <tr><td style="padding:5px; border:1px solid black;">(I)Detergencia y Cosmética</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
+                        <tr><td style="padding:5px; border:1px solid black;">(I)Energía</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
+                        <tr><td style="padding:5px; border:1px solid black;">(I)Energía Renovable</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
+                        <tr><td style="padding:5px; border:1px solid black;">(I)Farmacia</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
+                        <tr><td style="padding:5px; border:1px solid black;">(I)Fertilizantes y agroquímicos</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
+                        <tr><td style="padding:5px; border:1px solid black;">(I)Madera</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
+                        <tr><td style="padding:5px; border:1px solid black;">(I)Metalurgia</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
+                        <tr><td style="padding:5px; border:1px solid black;">(I)Minerales</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
+                        <tr><td style="padding:5px; border:1px solid black;">(I)Papel y cartón</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
+                        <tr><td style="padding:5px; border:1px solid black;">(I)Petróleo y gas</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
+                        <tr><td style="padding:5px; border:1px solid black;">(I)Pinturas,barnices,resinas,masillas,tintas</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
+                        <tr><td style="padding:5px; border:1px solid black;">(I)Plástico</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
+                        <tr><td style="padding:5px; border:1px solid black;">(I)Química básica</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
+                        <tr><td style="padding:5px; border:1px solid black;">(I)Química fina / formulados</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
+                        <tr><td style="padding:5px; border:1px solid black;">(I)Residuos</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
+                        <tr><td style="padding:5px; border:1px solid black;">(I)Textil y curtidos</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
+                        <tr><td style="padding:5px; border:1px solid black;">(I)Transportes</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
+                        <tr><td style="padding:5px; border:1px solid black;">(I)Vidrio y Cerámica</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
+                        <tr><th style="padding: 5px; border: 1px solid black;">Piscinas</th><th style="padding: 5px; border: 1px solid black;">Selección</th></tr>
+                        <tr><td style="padding:5px; border:1px solid black;">(P)Privada</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
+                        <tr><td style="padding:5px; border:1px solid black;">(P)Pública</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
+                        <tr><th style="padding: 5px; border: 1px solid black;">Sector 0</th><th style="padding: 5px; border: 1px solid black;">Selección</th></tr>
+                        <tr><td style="padding:5px; border:1px solid black;">(S)Sector 0</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
                     </tbody>
                 </table>
             </td>
@@ -247,7 +294,6 @@ def enviar_correo_con_adjuntos(archivo1, archivo2, correo_comercial=None, nombre
     part2.add_header('Content-Disposition', f'attachment; filename="Alta Plantas - {nombre_cliente}.xlsx"')
     msg.attach(part2)
 
-    # ------------------- ENVIAR -------------------
     try:
         with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
             server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
@@ -261,6 +307,7 @@ def enviar_correo_con_adjuntos(archivo1, archivo2, correo_comercial=None, nombre
 
 if __name__ == '__main__':
     app.run(debug=True)
+
 
 
 
