@@ -162,6 +162,11 @@
     <div class="container">
         <h2>DATOS DE LAS PLANTAS (LUGAR DE ENTREGA DE LA MERCANCÍA)</h2>
 
+        <!-- 🔹 Aquí incluimos los datos del cliente como inputs ocultos -->
+        {% for clave, valor in datos_cliente.items() %}
+            <input type="hidden" name="{{ clave }}" value="{{ valor }}">
+        {% endfor %}
+
         {% with messages = get_flashed_messages() %}
         {% if messages %}
         <div class="alert alert-danger">
@@ -223,6 +228,8 @@ function validarFormulario() {
 </script>
 
 </body>
+</html>
+
 </html>
 
 
