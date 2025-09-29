@@ -69,9 +69,9 @@ def guardar():
     archivo_excel_cliente = crear_excel_en_memoria(data, firma_bytes)
     archivo_excel_plantas = crear_excel_plantas_en_memoria(data)
 
-    # Enviar correos (2 correos: 1 por cada adjunto) vía Gmail / Apps Script en segundo plano
+    # Enviar UN SOLO correo con los DOS adjuntos vía Gmail / Apps Script en segundo plano
     threading.Thread(
-        target=enviar_correos_alta_cliente_via_webhook,
+        target=enviar_un_solo_correo_con_dos_adjuntos,
         args=(archivo_excel_cliente, archivo_excel_plantas, data.get('correo_comercial'), data.get('nombre') or "cliente"),
         daemon=True
     ).start()
@@ -176,38 +176,14 @@ def crear_excel_plantas_en_memoria(data):
 #  ENVÍO POR WEBHOOK GMAIL
 # =========================
 
-def enviar_via_gmail_webhook_bytes(to_email, subject, text, html, attachment_bytes=None, filename=None, mime_type=None):
+def enviar_un_solo_correo_con_dos_adjuntos(archivo1, archivo2, correo_comercial, nombre_cliente):
     """
-    Envía un email a través de Google Apps Script (MailApp) usando la URL del webhook (GAS_WEBHOOK_URL).
-    Acepta UN adjunto por envío (por eso mandamos 2 correos cuando hay 2 excels).
+    Envía UN correo con los dos excels adjuntos usando el webhook (Apps Script actualizado).
     """
     if not GAS_WEBHOOK_URL:
         raise RuntimeError("Falta GAS_WEBHOOK_URL")
 
-    payload = {
-        "to": to_email,
-        "subject": subject,
-        "text": text or "",
-        "html": html or (text or "")
-    }
-
-    if attachment_bytes is not None and filename and mime_type:
-        payload["attachmentBase64"] = base64.b64encode(attachment_bytes).decode("utf-8")
-        payload["filename"] = filename
-        payload["mimeType"] = mime_type
-
-    r = requests.post(GAS_WEBHOOK_URL, json=payload, timeout=20)
-    if r.status_code != 200 or "OK" not in r.text:
-        raise RuntimeError(f"Webhook Gmail error: {r.status_code} {r.text}")
-    logging.info(f"✅ Correo enviado: {subject}")
-
-def enviar_correos_alta_cliente_via_webhook(archivo1, archivo2, correo_comercial, nombre_cliente):
-    """
-    Envía dos correos:
-      1) Ficha Cliente (Excel 1)
-      2) Plantas (Excel 2)
-    Incluye el cuerpo HTML largo con todas las tablas que nos pasaste.
-    """
+    # Destinatarios
     destinatarios = ['tesoreria@dimensasl.com']
     if correo_comercial and "@" in correo_comercial:
         destinatarios.append(correo_comercial)
@@ -346,29 +322,35 @@ def enviar_correos_alta_cliente_via_webhook(archivo1, archivo2, correo_comercial
     </html>
     """
 
-    # 1/2 — FICHA CLIENTE
+    # Preparar adjuntos
     archivo1.seek(0)
-    enviar_via_gmail_webhook_bytes(
-        to_email=to_csv,
-        subject=f"Alta de cliente: {nombre_cliente} (1/2) — Ficha Cliente",
-        text="Alta de cliente — Ficha Cliente",
-        html=body_html,
-        attachment_bytes=archivo1.getvalue(),
-        filename=f"Alta Cliente - {nombre_cliente}.xlsx",
-        mime_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
-
-    # 2/2 — PLANTAS
     archivo2.seek(0)
-    enviar_via_gmail_webhook_bytes(
-        to_email=to_csv,
-        subject=f"Alta de cliente: {nombre_cliente} (2/2) — Plantas",
-        text="Alta de cliente — Plantas",
-        html=body_html,
-        attachment_bytes=archivo2.getvalue(),
-        filename=f"Alta Plantas - {nombre_cliente}.xlsx",
-        mime_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
+    att1_b64 = base64.b64encode(archivo1.getvalue()).decode("utf-8")
+    att2_b64 = base64.b64encode(archivo2.getvalue()).decode("utf-8")
+
+    payload = {
+        "to": to_csv,
+        "subject": f"Alta de cliente: {nombre_cliente} — Documentación",
+        "text": "Alta de cliente — Documentación adjunta",
+        "html": body_html,
+        "attachments": [
+            {
+                "filename": f"Alta Cliente - {nombre_cliente}.xlsx",
+                "mimeType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                "base64": att1_b64
+            },
+            {
+                "filename": f"Alta Plantas - {nombre_cliente}.xlsx",
+                "mimeType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                "base64": att2_b64
+            }
+        ]
+    }
+
+    r = requests.post(GAS_WEBHOOK_URL, json=payload, timeout=20)
+    if r.status_code != 200 or "OK" not in r.text:
+        raise RuntimeError(f"Webhook Gmail error: {r.status_code} {r.text}")
+    logging.info("✅ Correo único enviado con dos adjuntos")
 
 # =========================
 #  MAIN
@@ -378,9 +360,6 @@ if __name__ == '__main__':
     # En local: python app.py
     # En Render: el propio servicio lanza el proceso con tu start command.
     app.run(debug=True)
-
-
-
 
 
 
