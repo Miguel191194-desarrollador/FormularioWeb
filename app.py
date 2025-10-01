@@ -1,3 +1,4 @@
+# app.py
 from flask import Flask, render_template, request, redirect, flash
 from openpyxl import load_workbook
 from openpyxl.drawing.image import Image as ExcelImage
@@ -9,7 +10,7 @@ import os
 import logging
 import requests
 
-# (Opcional en local) carga .env si existe; en Render usará Environment
+# (Opcional en local) Cargar .env si existe; en Render usará Environment
 try:
     from dotenv import load_dotenv
     load_dotenv()
@@ -18,14 +19,22 @@ except Exception:
 
 app = Flask(__name__)
 app.secret_key = 'supersecretkey'
-logging.basicConfig(level=logging.INFO)
+
+# Logging claro a consola (Render captura stdout)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s"
+)
 
 # =========================
 #  CONFIG (ENTORNO/RENDER)
 # =========================
-# Debes tener esta variable en Render → Service → Environment
 GAS_WEBHOOK_URL = os.getenv("GAS_WEBHOOK_URL")   # URL de Apps Script (termina en /exec)
-MAIL_TO_ADMIN   = os.getenv("MAIL_TO_ADMIN")     # opcional: copia de seguridad
+MAIL_TO_ADMIN   = os.getenv("MAIL_TO_ADMIN")     # opcional: copia
+# Umbral para dividir correo si adjuntos son pesados (por defecto 18 MiB)
+EMAIL_SPLIT_THRESHOLD_BYTES = int(os.getenv("EMAIL_SPLIT_THRESHOLD_BYTES", str(18 * 1024 * 1024)))
+# Forzar envío síncrono para depurar (muestra error en la respuesta del navegador)
+FORCE_SYNC_SEND = os.getenv("FORCE_SYNC_SEND", "false").lower() in ("1", "true", "yes")
 
 # =========================
 #  RUTAS
@@ -66,17 +75,53 @@ def guardar():
         return render_template('plantas.html', datos_cliente=form_data)
 
     # Generar excels en memoria
-    archivo_excel_cliente = crear_excel_en_memoria(data, firma_bytes)
-    archivo_excel_plantas = crear_excel_plantas_en_memoria(data)
+    try:
+        archivo_excel_cliente = crear_excel_en_memoria(data, firma_bytes)
+        archivo_excel_plantas = crear_excel_plantas_en_memoria(data)
+    except Exception as e:
+        logging.exception("❌ Error generando Excels")
+        flash(f'Error generando Excels: {e}')
+        return render_template('plantas.html', datos_cliente=form_data)
 
-    # Enviar UN SOLO correo con los DOS adjuntos vía Gmail / Apps Script en segundo plano
-    threading.Thread(
-        target=enviar_un_solo_correo_con_dos_adjuntos,
-        args=(archivo_excel_cliente, archivo_excel_plantas, data.get('correo_comercial'), data.get('nombre') or "cliente"),
-        daemon=True
-    ).start()
+    # Comprobación temprana del webhook
+    if not GAS_WEBHOOK_URL:
+        logging.error("❌ GAS_WEBHOOK_URL no está configurado en el entorno")
+        flash('Error de configuración: falta GAS_WEBHOOK_URL en el servidor.')
+        return render_template('gracias.html')
 
-    return render_template("gracias.html")
+    nombre_cliente = data.get('nombre') or "cliente"
+    correo_comercial = data.get('correo_comercial')
+
+    # Envío en primer plano (depuración) o en hilo (producción)
+    if FORCE_SYNC_SEND:
+        ok, detalle = enviar_excel_con_posible_division(
+            archivo_excel_cliente, archivo_excel_plantas,
+            correo_comercial, nombre_cliente
+        )
+        if ok:
+            flash('Documentación enviada correctamente.')
+        else:
+            flash(f'Error enviando la documentación: {detalle}')
+        return render_template("gracias.html")
+    else:
+        threading.Thread(
+            target=_thread_enviar,
+            args=(archivo_excel_cliente, archivo_excel_plantas, correo_comercial, nombre_cliente),
+            daemon=True
+        ).start()
+        return render_template("gracias.html")
+
+def _thread_enviar(archivo1, archivo2, correo_comercial, nombre_cliente):
+    try:
+        ok, detalle = enviar_excel_con_posible_division(
+            archivo1, archivo2, correo_comercial, nombre_cliente
+        )
+        if ok:
+            logging.info("✅ Envío completado: %s", detalle)
+        else:
+            logging.error("❌ Fallo de envío: %s", detalle)
+    except Exception as e:
+        logging.exception("❌ Excepción enviando correo en hilo: %s", e)
 
 # =========================
 #  FUNCIONES EXCEL
@@ -176,23 +221,104 @@ def crear_excel_plantas_en_memoria(data):
 #  ENVÍO POR WEBHOOK GMAIL
 # =========================
 
-def enviar_un_solo_correo_con_dos_adjuntos(archivo1, archivo2, correo_comercial, nombre_cliente):
-    """
-    Envía UN correo con los dos excels adjuntos usando el webhook (Apps Script actualizado).
-    """
-    if not GAS_WEBHOOK_URL:
-        raise RuntimeError("Falta GAS_WEBHOOK_URL")
-
-    # Destinatarios
+def _build_recipients(correo_comercial):
+    """Construye lista de destinatarios."""
     destinatarios = ['tesoreria@dimensasl.com']
     if correo_comercial and "@" in correo_comercial:
         destinatarios.append(correo_comercial)
     if MAIL_TO_ADMIN and "@" in MAIL_TO_ADMIN:
         destinatarios.append(MAIL_TO_ADMIN)
+    return destinatarios
+
+def _encode_attachment(bytes_io, filename):
+    """Devuelve dict de adjunto para Apps Script a partir de BytesIO."""
+    bytes_io.seek(0)
+    raw = bytes_io.getvalue()
+    return {
+        "filename": filename,
+        "mimeType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "base64": base64.b64encode(raw).decode("utf-8"),
+        "raw_size": len(raw)  # útil para logs/decisión de split
+    }
+
+def _post_to_webhook(payload):
+    """Hace POST al webhook y devuelve (ok, detalle)."""
+    try:
+        r = requests.post(GAS_WEBHOOK_URL, json=payload, timeout=30)
+        logging.info("Webhook status=%s body=%s", r.status_code, r.text[:500])
+        if r.status_code == 200 and "OK" in r.text:
+            return True, f"status={r.status_code}"
+        return False, f"Webhook error status={r.status_code} body={r.text[:500]}"
+    except Exception as e:
+        logging.exception("Excepción en requests.post")
+        return False, f"Excepción: {e}"
+
+def enviar_excel_con_posible_division(archivo1, archivo2, correo_comercial, nombre_cliente):
+    """
+    Prepara adjuntos y envía:
+      - Un único correo con ambos adjuntos si caben bajo el umbral.
+      - O dos correos (uno por adjunto) si superan el umbral.
+    """
+    if not GAS_WEBHOOK_URL:
+        return False, "Falta GAS_WEBHOOK_URL"
+
+    destinatarios = _build_recipients(correo_comercial)
     to_csv = ",".join(destinatarios)
 
-    # ======= CUERPO HTML COMPLETO (SIN RECORTES) =======
-    body_html = f"""
+    subj_base = f"Alta de cliente: {nombre_cliente} — Documentación"
+    body_html = construir_body_html(nombre_cliente)
+
+    att1 = _encode_attachment(archivo1, f"Alta Cliente - {nombre_cliente}.xlsx")
+    att2 = _encode_attachment(archivo2, f"Alta Plantas - {nombre_cliente}.xlsx")
+
+    # Estimación del tamaño en base64 (≈ 4/3)
+    total_raw = att1["raw_size"] + att2["raw_size"]
+    total_b64_est = int(total_raw * 4 / 3)
+
+    logging.info("Tamaño adjuntos (raw): %d bytes; estimado base64: %d; umbral: %d",
+                 total_raw, total_b64_est, EMAIL_SPLIT_THRESHOLD_BYTES)
+
+    if total_b64_est <= EMAIL_SPLIT_THRESHOLD_BYTES:
+        # Enviar un único correo con los dos adjuntos
+        payload = {
+            "to": to_csv,
+            "subject": subj_base,
+            "text": "Alta de cliente — Documentación adjunta",
+            "html": body_html,
+            "attachments": [
+                {k: v for k, v in att1.items() if k != "raw_size"},
+                {k: v for k, v in att2.items() if k != "raw_size"},
+            ]
+        }
+        ok, detalle = _post_to_webhook(payload)
+        return ok, ("1 correo (2 adjuntos). " + detalle)
+    else:
+        # Enviar dos correos: uno por cada Excel
+        payload1 = {
+            "to": to_csv,
+            "subject": f"{subj_base} (1/2) — Copia Alta de Cliente",
+            "text": "Adjunto el Excel de la primera página (Cliente).",
+            "html": body_html,
+            "attachments": [{k: v for k, v in att1.items() if k != "raw_size"}]
+        }
+        ok1, det1 = _post_to_webhook(payload1)
+
+        payload2 = {
+            "to": to_csv,
+            "subject": f"{subj_base} (2/2) — Copia Alta de Plantas",
+            "text": "Adjunto el Excel de la segunda página (Plantas).",
+            "html": body_html,
+            "attachments": [{k: v for k, v in att2.items() if k != "raw_size"}]
+        }
+        ok2, det2 = _post_to_webhook(payload2)
+
+        ok_total = ok1 and ok2
+        detalle = f"Split en 2 correos. 1/2: {det1} | 2/2: {det2}"
+        return ok_total, detalle
+
+def construir_body_html(nombre_cliente):
+    """HTML del cuerpo del correo (completo, con tablas de riesgos/sector/subsector)."""
+    return f"""
     <html>
     <body>
     <p>Buenas,</p>
@@ -322,36 +448,6 @@ def enviar_un_solo_correo_con_dos_adjuntos(archivo1, archivo2, correo_comercial,
     </html>
     """
 
-    # Preparar adjuntos
-    archivo1.seek(0)
-    archivo2.seek(0)
-    att1_b64 = base64.b64encode(archivo1.getvalue()).decode("utf-8")
-    att2_b64 = base64.b64encode(archivo2.getvalue()).decode("utf-8")
-
-    payload = {
-        "to": to_csv,
-        "subject": f"Alta de cliente: {nombre_cliente} — Documentación",
-        "text": "Alta de cliente — Documentación adjunta",
-        "html": body_html,
-        "attachments": [
-            {
-                "filename": f"Alta Cliente - {nombre_cliente}.xlsx",
-                "mimeType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                "base64": att1_b64
-            },
-            {
-                "filename": f"Alta Plantas - {nombre_cliente}.xlsx",
-                "mimeType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                "base64": att2_b64
-            }
-        ]
-    }
-
-    r = requests.post(GAS_WEBHOOK_URL, json=payload, timeout=20)
-    if r.status_code != 200 or "OK" not in r.text:
-        raise RuntimeError(f"Webhook Gmail error: {r.status_code} {r.text}")
-    logging.info("✅ Correo único enviado con dos adjuntos")
-
 # =========================
 #  MAIN
 # =========================
@@ -360,6 +456,5 @@ if __name__ == '__main__':
     # En local: python app.py
     # En Render: el propio servicio lanza el proceso con tu start command.
     app.run(debug=True)
-
 
 
