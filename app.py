@@ -79,24 +79,24 @@ def guardar():
     correo_comercial = data.get('correo_comercial')
 
     if FORCE_SYNC_SEND:
-        ok, detalle = enviar_dos_correos_separados(excel_cliente, excel_plantas, correo_comercial, nombre_cliente)
+        ok, detalle = enviar_un_correo_con_dos_adjuntos(excel_cliente, excel_plantas, correo_comercial, nombre_cliente)
         flash('Documentación enviada correctamente.' if ok else f'Error enviando: {detalle}')
         return render_template("gracias.html")
     else:
         threading.Thread(
-            target=_thread_enviar_dos,
+            target=_thread_enviar_unico,
             args=(excel_cliente, excel_plantas, correo_comercial, nombre_cliente),
             daemon=True
         ).start()
         return render_template("gracias.html")
 
-def _thread_enviar_dos(archivo1, archivo2, correo, nombre):
+def _thread_enviar_unico(archivo1, archivo2, correo, nombre):
     try:
-        ok, detalle = enviar_dos_correos_separados(archivo1, archivo2, correo, nombre)
+        ok, detalle = enviar_un_correo_con_dos_adjuntos(archivo1, archivo2, correo, nombre)
         if ok:
-            logging.info("✅ Envío en 2 correos: %s", detalle)
+            logging.info("✅ Envío (1 correo, 2 adjuntos): %s", detalle)
         else:
-            logging.error("❌ Fallo envío en 2 correos: %s", detalle)
+            logging.error("❌ Fallo de envío (1 correo): %s", detalle)
     except Exception as e:
         logging.exception("❌ Excepción en hilo de envío: %s", e)
 
@@ -181,7 +181,7 @@ def crear_excel_plantas_en_memoria(data):
     bio.seek(0)
     return bio
 
-# ===== Envío por Webhook (2 correos sí o sí) =====
+# ===== Envío por Webhook (1 correo con 2 adjuntos) =====
 def _build_recipients(correo_comercial):
     dest = ['tesoreria@dimensasl.com']
     if correo_comercial and "@" in correo_comercial:
@@ -214,36 +214,30 @@ def _post_to_webhook(payload):
         logging.exception("Excepción en requests.post")
         return False, f"Excepción: {e}"
 
-def enviar_dos_correos_separados(archivo_cliente, archivo_plantas, correo_comercial, nombre_cliente):
+def enviar_un_correo_con_dos_adjuntos(archivo_cliente, archivo_plantas, correo_comercial, nombre_cliente):
     if not GAS_WEBHOOK_URL:
         return False, "Falta GAS_WEBHOOK_URL"
 
     to_csv = _build_recipients(correo_comercial)
-    subj_base = f"Alta de cliente: {nombre_cliente} — Documentación"
+    subject = f"Alta de cliente: {nombre_cliente} — Documentación"
     body_html = construir_body_html(nombre_cliente)
 
     att1 = _encode_attachment(archivo_cliente, f"Copia Alta de Cliente - {nombre_cliente}.xlsx")
     att2 = _encode_attachment(archivo_plantas, f"Copia Alta de Plantas - {nombre_cliente}.xlsx")
 
-    payload1 = {
+    payload = {
         "to": to_csv,
-        "subject": f"{subj_base} (1/2) — Copia de Alta de Cliente",
-        "text": "Adjunto el Excel de la primera página (Cliente).",
+        "subject": subject,
+        "text": "Adjuntamos la documentación del alta (Cliente y Plantas).",
         "html": body_html,
-        "attachments": [{k: v for k, v in att1.items() if k != "raw_size"}]
+        "attachments": [
+            {k: v for k, v in att1.items() if k != "raw_size"},
+            {k: v for k, v in att2.items() if k != "raw_size"}
+        ]
     }
-    ok1, det1 = _post_to_webhook(payload1)
 
-    payload2 = {
-        "to": to_csv,
-        "subject": f"{subj_base} (2/2) — Copia de Alta de Plantas",
-        "text": "Adjunto el Excel de la segunda página (Plantas).",
-        "html": body_html,
-        "attachments": [{k: v for k, v in att2.items() if k != "raw_size"}]
-    }
-    ok2, det2 = _post_to_webhook(payload2)
-
-    return (ok1 and ok2), f"1/2: {det1} | 2/2: {det2}"
+    ok, detalle = _post_to_webhook(payload)
+    return ok, detalle
 
 def construir_body_html(nombre_cliente):
     # Cuerpo completo con las tablas (riesgo, sector y subsectores)
@@ -327,7 +321,7 @@ def construir_body_html(nombre_cliente):
                         <tr><td style="padding:5px; border:1px solid black;">(AL)Panadería,pasta,harina,galletas, y pasteleria</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
                         <tr><td style="padding:5px; border:1px solid black;">(AL)Pescado</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
                         <tr><td style="padding:5px; border:1px solid black;">(AL)Vino</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
-                        <tr><th style="padding: 5px; border: 1px solid black;">Distribuidor</th><th style="padding: 5px; border: 1px solid black;">Selección</th></tr>
+                        <tr><th style="padding: 5px; border: 1px solid black;">Distribuidor</th><th style="padding: 5 px; border: 1px solid black;">Selección</th></tr>
                         <tr><td style="padding:5px; border:1px solid black;">(D)Agricultura</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
                         <tr><td style="padding:5px; border:1px solid black;">(D)Aguas</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
                         <tr><td style="padding:5px; border:1px solid black;">(D)Alimentación</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
@@ -363,7 +357,7 @@ def construir_body_html(nombre_cliente):
                         <tr><th style="padding: 5px; border: 1px solid black;">Piscinas</th><th style="padding: 5px; border: 1px solid black;">Selección</th></tr>
                         <tr><td style="padding:5px; border:1px solid black;">(P)Privada</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
                         <tr><td style="padding:5px; border:1px solid black;">(P)Pública</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
-                        <tr><th style="padding: 5px; border: 1px solid black;">Sector 0</th><th style="padding: 5px; border: 1px solid black;">Selección</th></tr>
+                        <tr><th style="padding: 5px; border: 1px solid black;">Sector 0</th><th style="padding: 5 px; border: 1px solid black;">Selección</th></tr>
                         <tr><td style="padding:5px; border:1px solid black;">(S)Sector 0</td><td style="padding:5px; border:1px solid black;"><input type="checkbox"></td></tr>
                     </tbody>
                 </table>
@@ -380,6 +374,8 @@ def construir_body_html(nombre_cliente):
 # ===== Main =====
 if __name__ == '__main__':
     app.run(debug=True)
+
+
 
 
 
